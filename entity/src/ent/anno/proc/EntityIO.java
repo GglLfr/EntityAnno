@@ -13,6 +13,9 @@ import ent.anno.TypeIOResolver.*;
 import mindustry.*;
 import mindustry.ctype.*;
 
+import java.lang.annotation.*;
+import java.util.*;
+
 import static ent.anno.BaseProcessor.*;
 import static javax.lang.model.element.Modifier.*;
 
@@ -72,20 +75,30 @@ public class EntityIO{
         }
     }
 
-    public void write(MethodSpec.Builder method, boolean write){
+    public void write(MethodSpec.Builder method, boolean write, Seq<VarSymbol> allFields){
         this.method = method;
         this.write = write;
 
         if(write){
             st("write.s($L)", revisions.peek().version);
-            for(var field : revisions.peek().fields) io(field.type, "this." + field.name, false);
+            for(var field : revisions.peek().fields){
+                var var = allFields.find(s -> name(s).equals(field.name));
+                if(var == null || anno(var, NoSerialize.class) != null) continue;
+
+                io(field.type, "this." + field.name, false);
+            }
         }else{
             st("short REV = read.s()");
 
             cont("switch(REV)");
             for(var rev : revisions){
                 cont("case $L ->", rev.version);
-                for(var field : rev.fields) io(field.type, presentFields.contains(field.name) ? "this." + field.name + " = " : "", false);
+                for(var field : rev.fields){
+                    var var = allFields.find(s -> name(s).equals(field.name));
+                    if(var == null || anno(var, NoSerialize.class) != null) continue;
+
+                    io(field.type, presentFields.contains(field.name) ? "this." + field.name + " = " : "", false);
+                }
                 econt();
             }
 

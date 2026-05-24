@@ -660,7 +660,7 @@ public class EntityProcessor extends BaseProcessor{
                         if(hasIO){
                             if(io == null) io = new EntityIO(this, name, builder, allFieldSpecs, serializer, revDir.child(name));
                             if((mname.equals("read") || mname.equals("write"))){
-                                io.write(methBuilder, mname.equals("write"));
+                                io.write(methBuilder, mname.equals("write"), allFields);
                             }
 
                             if((mname.equals("readSync") || mname.equals("writeSync"))){
