@@ -72,20 +72,26 @@ public class EntityIO{
         }
     }
 
-    public void write(MethodSpec.Builder method, boolean write){
+    public void write(MethodSpec.Builder method, boolean write, Seq<Svar> allFields){
         this.method = method;
         this.write = write;
 
         if(write){
             st("write.s($L)", revisions.peek().version);
-            for(var field : revisions.peek().fields) io(field.type, "this." + field.name, false);
+            for(var field : revisions.peek().fields){
+                if(fieldHasAnno(field, allFields, NoSerialize.class)) continue;
+                io(field.type, "this." + field.name, false);
+            }
         }else{
             st("short REV = read.s()");
 
             cont("switch(REV)");
             for(var rev : revisions){
                 cont("case $L ->", rev.version);
-                for(var field : rev.fields) io(field.type, presentFields.contains(field.name) ? "this." + field.name + " = " : "", false);
+                for(var field : rev.fields){
+                    if(fieldHasAnno(field, allFields, NoSerialize.class)) continue;
+                    io(field.type, presentFields.contains(field.name) ? "this." + field.name + " = " : "", false);
+                }
                 econt();
             }
 
@@ -97,14 +103,18 @@ public class EntityIO{
         }
     }
 
-    public void writeSync(MethodSpec.Builder method, boolean write, Seq<VarSymbol> allFields){
+    boolean fieldHasAnno(RevisionField field, Seq<Svar> allFields, Class<? extends Annotation> type){
+        Svar var = allFields.find(s -> s.name().equals(field.name));
+        return var != null && var.has(type);
+    }
+
+    public void writeSync(MethodSpec.Builder method, boolean write, Seq<Svar> allFields){
         this.method = method;
         this.write = write;
 
         if(write){
             for(var field : revisions.peek().fields){
-                var var = allFields.find(s -> name(s).equals(field.name));
-                if(var == null || anno(var, NoSync.class) != null) continue;
+                if(fieldHasAnno(field, allFields, NoSync.class)) continue;
 
                 io(field.type, "this." + field.name, true);
             }
