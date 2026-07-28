@@ -358,6 +358,7 @@ public class EntityProcessor extends BaseProcessor{
 
                     defGroups.clear();
                     excludeGroups.clear();
+                    exclusions.clear();
                     for(var comp : defComps.values()){
                         var ex = anno(comp, ExcludeGroups.class);
                         if(ex != null){
@@ -367,7 +368,7 @@ public class EntityProcessor extends BaseProcessor{
                             }
                         }
 
-                        exclusions = groupExclusions.get(groups.get(comp));
+                        exclusions.add(groupExclusions.get(groups.get(comp)));
                     }
 
                     for(var comp : defComps.values()) if(!excludeGroups.contains(comp) && !exclusions.contains(comp) && groups.containsKey(comp)) defGroups.add(groups.get(comp));
