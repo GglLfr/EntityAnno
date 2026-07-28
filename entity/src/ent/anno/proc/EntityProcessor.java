@@ -305,7 +305,7 @@ public class EntityProcessor extends BaseProcessor{
 
                 Seq<String> defGroups = new Seq<>(false);
                 ObjectSet<ClassSymbol> excludeGroups = new ObjectSet<>();
-                Seq<ClassSymbol> exclusions;
+                Seq<ClassSymbol> exclusions = new Seq<>(false);
 
                 ObjectMap<String, Seq<MethodSymbol>> methods = new ObjectMap<>();
                 ObjectMap<FieldSpec, VarSymbol> specVariables = new ObjectMap<>();
