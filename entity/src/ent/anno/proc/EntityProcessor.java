@@ -370,7 +370,7 @@ public class EntityProcessor extends BaseProcessor{
                         exclusions = groupExclusions.get(groups.get(comp));
                     }
 
-                    for(var comp : defComps.values()) if(!excludeGroups.contains(comp) && !exclusions.contains(c -> defComps.contains(c)) && groups.containsKey(comp)) defGroups.add(groups.get(comp));
+                    for(var comp : defComps.values()) if(!excludeGroups.contains(comp) && !exclusions.contains(c -> defComps.containsKey(c)) && groups.(comp)) defGroups.add(groups.get(comp));
 
                     var builder = TypeSpec.classBuilder(name)
                         .addModifiers(PUBLIC)
