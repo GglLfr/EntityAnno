@@ -47,6 +47,7 @@ public class EntityProcessor extends BaseProcessor{
     protected OrderedMap<String, TypeSpec.Builder> baseClasses = new OrderedMap<>();
     protected ObjectMap<String, ClassSymbol> baseClassTypes = new ObjectMap<>();
     protected ObjectMap<ClassSymbol, String> groups = new ObjectMap<>();
+    protected ObjectMap<String, Seq<ClassSymbol>> groupExclusions = new ObjectMap<>();
     protected Seq<Symbol> defs = new Seq<>();
 
     protected ObjectMap<ClassSymbol, OrderedMap<String, Seq<MethodSymbol>>> inserters = new OrderedMap<>();
@@ -147,6 +148,10 @@ public class EntityProcessor extends BaseProcessor{
                     comp(Puddlec.class), "puddle",
                     comp(WorldLabelc.class), "label",
                     comp(PowerGraphUpdaterc.class), "powerGraph"
+                );
+
+                groupExclusions.put(
+                    "all", Seq.with(comp(Unitc.class), comp(Bulletc.class), comp(PowerGraphUpdaterc.class))
                 );
 
                 for(var s : elements.getPackageElement("mindustry.gen").getEnclosedElements()){
@@ -300,6 +305,7 @@ public class EntityProcessor extends BaseProcessor{
 
                 Seq<String> defGroups = new Seq<>(false);
                 ObjectSet<ClassSymbol> excludeGroups = new ObjectSet<>();
+                Seq<ClassSymbol> exclusions;
 
                 ObjectMap<String, Seq<MethodSymbol>> methods = new ObjectMap<>();
                 ObjectMap<FieldSpec, VarSymbol> specVariables = new ObjectMap<>();
@@ -360,9 +366,11 @@ public class EntityProcessor extends BaseProcessor{
                                 if(t != null) excludeGroups.add(t);
                             }
                         }
+
+                        exclusions = groupExclusions.get(groups.get(comp));
                     }
 
-                    for(var comp : defComps.values()) if(!excludeGroups.contains(comp) && groups.containsKey(comp)) defGroups.add(groups.get(comp));
+                    for(var comp : defComps.values()) if(!excludeGroups.contains(comp) && !exclusions.contains(c -> defComps.contains(c)) && groups.containsKey(comp)) defGroups.add(groups.get(comp));
 
                     var builder = TypeSpec.classBuilder(name)
                         .addModifiers(PUBLIC)
