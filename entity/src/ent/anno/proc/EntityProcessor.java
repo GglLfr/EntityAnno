@@ -305,7 +305,6 @@ public class EntityProcessor extends BaseProcessor{
 
                 Seq<String> defGroups = new Seq<>(false);
                 ObjectSet<ClassSymbol> excludeGroups = new ObjectSet<>();
-                Seq<ClassSymbol> exclusions = new Seq<>(false);
 
                 ObjectMap<String, Seq<MethodSymbol>> methods = new ObjectMap<>();
                 ObjectMap<FieldSpec, VarSymbol> specVariables = new ObjectMap<>();
@@ -358,7 +357,6 @@ public class EntityProcessor extends BaseProcessor{
 
                     defGroups.clear();
                     excludeGroups.clear();
-                    exclusions.clear();
                     for(var comp : defComps.values()){
                         var ex = anno(comp, ExcludeGroups.class);
                         if(ex != null){
@@ -367,11 +365,18 @@ public class EntityProcessor extends BaseProcessor{
                                 if(t != null) excludeGroups.add(t);
                             }
                         }
-
-                        exclusions.add(groupExclusions.get(groups.get(comp)));
                     }
 
-                    for(var comp : defComps.values()) if(!excludeGroups.contains(comp) && !exclusions.contains(comp) && groups.containsKey(comp)) defGroups.add(groups.get(comp));
+                    for(var comp : defComps.values()){
+                        if(excludeGroups.contains(comp) || !groups.containsKey(comp)) continue;
+
+                        var val = groups.get(comp);
+
+                        Seq<ClassSymbol> exclusions = groupExclusions.get(val);
+                        if(exclusions != null && exclusions.contains(c -> defComps.contains(c))) continue;
+
+                        defGroups.add(val);
+                    }
 
                     var builder = TypeSpec.classBuilder(name)
                         .addModifiers(PUBLIC)
