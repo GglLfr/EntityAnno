@@ -373,7 +373,7 @@ public class EntityProcessor extends BaseProcessor{
                         var val = groups.get(comp);
 
                         Seq<ClassSymbol> exclusions = groupExclusions.get(val);
-                        if(exclusions != null && exclusions.contains(c -> defComps.contains(c))) continue;
+                        if(exclusions != null && exclusions.contains(c -> defComps.containsValue(c, true))) continue;
 
                         defGroups.add(val);
                     }
