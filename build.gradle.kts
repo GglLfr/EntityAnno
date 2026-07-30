@@ -6,10 +6,10 @@ plugins{
     `maven-publish`
 }
 
-val arcVersion: String by project
-val mindustryVersion: String by project
-val javapoetVersion: String by project
-val kotlinVersion: String by project
+val arcVersion: String = providers.gradleProperty("arcVersion").get()
+val mindustryVersion: String = providers.gradleProperty("mindustryVersion").get()
+val javapoetVersion: String = providers.gradleProperty("javapoetVersion").get()
+val kotlinVersion: String = providers.gradleProperty("kotlinVersion").get()
 
 fun arc(module: String): String{
     return "com.github.Anuken.Arc$module:$arcVersion"
@@ -60,7 +60,6 @@ allprojects{
         maven("https://oss.sonatype.org/content/repositories/snapshots/")
         maven("https://oss.sonatype.org/content/repositories/releases/")
         maven("https://maven.xpdustry.com/mindustry")
-        maven("https://jitpack.io")
     }
 
     java{
@@ -71,23 +70,26 @@ allprojects{
     tasks.withType<JavaCompile>().configureEach{
         options.apply{
             isIncremental = true
+            isFork = false
             encoding = "UTF-8"
             compilerArgs.add("-Xlint:-options")
+
+            compilerArgs.addAll(providers.gradleProperty("org.gradle.jvmargs").get()
+                .split(Regex("\\s+"))
+                .filter{it.startsWith("--add-opens")}
+                .map{"--add-exports=${it.substring("--add-opens=".length)}"}
+            )
         }
 
         sourceCompatibility = "17"
-        targetCompatibility = "8"
-
-        doFirst{
-            sourceCompatibility = "8"
-        }
+        targetCompatibility = "17"
     }
 
     tasks.withType<Javadoc>().configureEach{
         options{
             encoding = "UTF-8"
 
-            val exports = (project.property("org.gradle.jvmargs") as String)
+            val exports = providers.gradleProperty("org.gradle.jvmargs").get()
                 .split(Regex("\\s+"))
                 .filter{it.startsWith("--add-opens")}
                 .map{"--add-exports ${it.substring("--add-opens=".length)}"}
@@ -96,30 +98,6 @@ allprojects{
             val opts = File(temporaryDir, "exports.options")
             BufferedWriter(FileWriter(opts, Charsets.UTF_8, false)).use{it.write("-Xdoclint:none $exports")}
             optionFiles(opts)
-        }
-    }
-}
-
-configure(allprojects - project(":downgrader")){
-    dependencies{
-        annotationProcessor(project(":downgrader"))
-    }
-}
-
-configure(listOf(project(":downgrader"), project(":entity"))){
-    sourceSets["main"].resources.setSrcDirs(listOf(layout.projectDirectory.dir("assets")))
-    dependencies{
-        implementation(arc(":arc-core"))
-    }
-}
-
-project(":downgrader"){
-    publishing.publications.register<MavenPublication>("maven"){
-        from(components["java"])
-        pom{
-            name = "EntityAnno Syntax Downgrader"
-            description = "Java 9+ syntax availability in Java 8, which is necessary for Mindustry mods."
-            commonPom(this)
         }
     }
 }
@@ -136,7 +114,9 @@ project(":entity"){
         }
     }
 
+    sourceSets["main"].resources.setSrcDirs(listOf(layout.projectDirectory.dir("assets")))
     dependencies{
+        implementation(arc(":arc-core"))
         implementation(mindustry(":core"))
         implementation(javapoet())
     }
@@ -173,7 +153,11 @@ project(":"){
             pom{applyPom(this)}
         }
 
-        register<MavenPublication>("plugin"){
+        val mavenGroupId = maven.map{it.groupId}
+        val mavenArtifactId = maven.map{it.artifactId}
+        val mavenVersion = maven.map{it.version}
+
+        register<MavenPublication>("plugin") {
             (this as MavenPublicationInternal).isAlias = true
             groupId = plugin.map{it.id}.get()
             artifactId = "$groupId.gradle.plugin"
@@ -189,13 +173,13 @@ project(":"){
                     val dependency = dependencies.appendChild(doc.createElement("dependency"))
 
                     val groupId = dependency.appendChild(doc.createElement("groupId"))
-                    groupId.textContent = maven.map{it.groupId}.get()
+                    groupId.textContent = mavenGroupId.get()
 
                     val artifactId = dependency.appendChild(doc.createElement("artifactId"))
-                    artifactId.textContent = maven.map{it.artifactId}.get()
+                    artifactId.textContent = mavenArtifactId.get()
 
                     val version = dependency.appendChild(doc.createElement("version"))
-                    version.textContent = maven.map{it.version}.get()
+                    version.textContent = mavenVersion.get()
                 }
             }
         }
