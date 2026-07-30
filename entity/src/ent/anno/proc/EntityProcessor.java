@@ -358,6 +358,7 @@ public class EntityProcessor extends BaseProcessor{
                     for(var comp : defComps.values()) for(var dep : dependencies(comp)) defCompsResolve.put(name(dep), dep);
                     defComps.putAll(defCompsResolve);
 
+		    valueComps.clear();
                     defGroups.clear();
                     excludeGroups.clear();
                     for(var comp : defComps.values()){
