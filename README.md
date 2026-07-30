@@ -4,9 +4,8 @@ custom entity component classes. Offered features:
 - Nearly one-to-one integration of the entity component class generator in Mindustry,
   with an additional utility to properly register the entity class IDs for usage in
   `UnitType`s and persistence across save files.
-- Java 9+ syntax availability in Java 8, which is necessary for Mindustry mods.
 - Supports both release and bleeding-edge Mindustry version hashes.
-- A [comprehensive guide](/USAGE.md).
+- A [guide](/USAGE.md).
 - A [dedicated template](https://github.com/GlennFolker/MindustryModTemplate).
 
 ## Contributing
