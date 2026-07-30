@@ -47,6 +47,7 @@ public class EntityProcessor extends BaseProcessor{
     protected OrderedMap<String, TypeSpec.Builder> baseClasses = new OrderedMap<>();
     protected ObjectMap<String, ClassSymbol> baseClassTypes = new ObjectMap<>();
     protected ObjectMap<ClassSymbol, String> groups = new ObjectMap<>();
+    protected ObjectMap<String, Seq<ClassSymbol>> groupExclusions = new ObjectMap<>();
     protected Seq<Symbol> defs = new Seq<>();
 
     protected ObjectMap<ClassSymbol, OrderedMap<String, Seq<MethodSymbol>>> inserters = new OrderedMap<>();
@@ -148,6 +149,12 @@ public class EntityProcessor extends BaseProcessor{
                     comp(WorldLabelc.class), "label",
                     comp(PowerGraphUpdaterc.class), "powerGraph"
                 );
+
+		groupExclusions.put("all", Seq.with(
+		    comp(Unitc.class),
+		    comp(Bulletc.class),
+		    comp(PowerGraphUpdaterc.class)
+		));
 
                 for(var s : elements.getPackageElement("mindustry.gen").getEnclosedElements()){
                     var name = name(s);
@@ -297,6 +304,7 @@ public class EntityProcessor extends BaseProcessor{
 
                 OrderedMap<String, ClassSymbol> defComps = new OrderedMap<>();
                 ObjectMap<String, ClassSymbol> defCompsResolve = new ObjectMap<>();
+		Seq<ClassSymbol> valueComps = new Seq<>(false);
 
                 Seq<String> defGroups = new Seq<>(false);
                 ObjectSet<ClassSymbol> excludeGroups = new ObjectSet<>();
@@ -350,9 +358,11 @@ public class EntityProcessor extends BaseProcessor{
                     for(var comp : defComps.values()) for(var dep : dependencies(comp)) defCompsResolve.put(name(dep), dep);
                     defComps.putAll(defCompsResolve);
 
+		    valueComps.clear();
                     defGroups.clear();
                     excludeGroups.clear();
                     for(var comp : defComps.values()){
+			valueComps.add(comp);
                         var ex = anno(comp, ExcludeGroups.class);
                         if(ex != null){
                             for(var i : types(ex::value)){
@@ -362,7 +372,16 @@ public class EntityProcessor extends BaseProcessor{
                         }
                     }
 
-                    for(var comp : defComps.values()) if(!excludeGroups.contains(comp) && groups.containsKey(comp)) defGroups.add(groups.get(comp));
+                    for(var comp : defComps.values()){
+		        if(excludeGroups.contains(comp) || !groups.containsKey(comp)) continue;
+
+			var val = groups.get(comp);
+
+			Seq<ClassSymbol> exclusions = groupExclusions.get(val);
+			if(exclusions != null && exclusions.contains(c -> valueComps.contains(c))) continue;
+
+			defGroups.add(val);
+		    }
 
                     var builder = TypeSpec.classBuilder(name)
                         .addModifiers(PUBLIC)
