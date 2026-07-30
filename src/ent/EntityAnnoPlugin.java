@@ -105,7 +105,7 @@ public class EntityAnnoPlugin implements Plugin<Project>{
                 }
 
                 if(remaining[0] != 0) throw new IllegalStateException("Couldn't write all components; found " + remaining[0] + " unwritten.");
-                project.getLogger().lifecycle("Wrote {} components.", remaining[1]);
+                tt.getLogger().lifecycle("Wrote {} components.", remaining[1]);
             });
         });
 
@@ -118,9 +118,9 @@ public class EntityAnnoPlugin implements Plugin<Project>{
             }
 
             if(files.length == 0){
-                project.getLogger().warn("No fetched component files found. Either run `fetchComps`, or manually copy the files and run this task again.");
+                tt.getLogger().warn("No fetched component files found. Either run `fetchComps`, or manually copy the files and run this task again.");
             }else{
-                project.getLogger().lifecycle("Processed {} components.", files.length);
+                tt.getLogger().lifecycle("Processed {} components.", files.length);
             }
         }));
 
