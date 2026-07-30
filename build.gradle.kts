@@ -60,6 +60,7 @@ allprojects{
         maven("https://oss.sonatype.org/content/repositories/snapshots/")
         maven("https://oss.sonatype.org/content/repositories/releases/")
         maven("https://maven.xpdustry.com/mindustry")
+        maven("https://jitpack.io")
     }
 
     java{
