@@ -21,8 +21,6 @@ import java.util.concurrent.*;
  * @author GlFolker
  */
 public class EntityAnnoPlugin implements Plugin<Project>{
-    public static final String defMindustryVersion = "v146";
-
     @Override
     public void apply(Project project){
         var plugins = project.getPlugins();
@@ -39,9 +37,6 @@ public class EntityAnnoPlugin implements Plugin<Project>{
         plugins.apply(Kapt3GradleSubplugin.class);
 
         var ext = exts.create("entityAnno", EntityAnnoExtension.class);
-        ext.getMindustryVersion().convention(defMindustryVersion);
-        ext.getIsJitpack().convention(false);
-
         var fetchDir = project.getLayout().getBuildDirectory().dir("fetched");
         var fetchComps = tasks.register("fetchComps", t -> {
             t.getInputs().property("version", project.provider(ext.getMindustryVersion()::get));
@@ -53,13 +48,31 @@ public class EntityAnnoPlugin implements Plugin<Project>{
                 dirFi.emptyDirectory();
                 dirFi.mkdirs();
 
-                var repository = ext.getIsJitpack().get() ? "MindustryJitpack" : "Mindustry";
-                var version = ext.getMindustryVersion().get();
+                var versionSelect = ext.getMindustryVersion().get();
+                String version = switch(versionSelect){
+                    case "latest" -> {
+                        String[] tag = {null};
+                        Http.get("https://api.github.com/repos/Anuken/Mindustry/releases/latest")
+                            .timeout(0)
+                            .error(e -> { throw new RuntimeException(e); })
+                            .block(res -> tag[0] = Jval.read(res.getResultAsString()).get("tag_name").asString());
+                        yield tag[0];
+                    }
+                    case "be" -> {
+                        String[] tag = {null};
+                        Http.get("https://api.github.com/repos/Anuken/Mindustry/commits?per_page=1")
+                            .timeout(0)
+                            .error(e -> { throw new RuntimeException(e); })
+                            .block(res -> tag[0] = Jval.read(res.getResultAsString()).asArray().get(0).get("sha").asString());
+                        yield tag[0];
+                    }
+                    default -> versionSelect;
+                };
 
                 Queue<Future<?>> fetches = new Queue<>();
                 int[] remaining = {0, 0};
 
-                Http.get("https://api.github.com/repos/Anuken/" + repository + "/contents/core/src/mindustry/entities/comp?ref=" + version)
+                Http.get("https://api.github.com/repos/Anuken/Mindustry/contents/core/src/mindustry/entities/comp?ref=" + version)
                     .timeout(0)
                     .error(e -> { throw new RuntimeException(e); })
                     .block(res -> {

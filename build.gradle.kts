@@ -6,14 +6,9 @@ plugins{
     `maven-publish`
 }
 
-val arcVersion: String = providers.gradleProperty("arcVersion").get()
 val mindustryVersion: String = providers.gradleProperty("mindustryVersion").get()
 val javapoetVersion: String = providers.gradleProperty("javapoetVersion").get()
 val kotlinVersion: String = providers.gradleProperty("kotlinVersion").get()
-
-fun arc(module: String): String{
-    return "com.github.Anuken.Arc$module:$arcVersion"
-}
 
 fun mindustry(module: String): String{
     return "com.github.Anuken.Mindustry$module:$mindustryVersion"
@@ -59,8 +54,21 @@ allprojects{
         mavenCentral()
         maven("https://oss.sonatype.org/content/repositories/snapshots/")
         maven("https://oss.sonatype.org/content/repositories/releases/")
-        maven("https://maven.xpdustry.com/mindustry")
-        maven("https://jitpack.io")
+
+        ivy{
+            url = uri("https://github.com")
+            patternLayout{
+                artifact(when(mindustryVersion){
+                    "latest" -> "Anuken/Mindustry/releases/latest/download/dependencies.jar"
+                    "be" -> "Anuken/MindustryBuilds/releases/download/master/latest.jar"
+                    else -> "Anuken/Mindustry/releases/download/[revision]/dependencies.jar"
+                })
+                metadataSources{artifact()}
+            }
+            content{
+                includeVersion("com.github.Anuken.Mindustry", "core", mindustryVersion)
+            }
+        }
     }
 
     java{
@@ -117,7 +125,6 @@ project(":entity"){
 
     sourceSets["main"].resources.setSrcDirs(listOf(layout.projectDirectory.dir("assets")))
     dependencies{
-        implementation(arc(":arc-core"))
         implementation(mindustry(":core"))
         implementation(javapoet())
     }
@@ -187,7 +194,7 @@ project(":"){
     }
 
     dependencies{
-        implementation(arc(":arc-core"))
+        implementation(mindustry(":core"))
         implementation(kotlinPlugin("jvm"))
         implementation(kotlinPlugin("kapt"))
     }
