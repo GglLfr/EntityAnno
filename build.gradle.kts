@@ -6,9 +6,9 @@ plugins{
     `maven-publish`
 }
 
-val mindustryVersion: String = providers.gradleProperty("mindustryVersion").get()
-val javapoetVersion: String = providers.gradleProperty("javapoetVersion").get()
-val kotlinVersion: String = providers.gradleProperty("kotlinVersion").get()
+val mindustryVersion = providers.gradleProperty("mindustryVersion").get()
+val javapoetVersion = providers.gradleProperty("javapoetVersion").get()
+val kotlinVersion = providers.gradleProperty("kotlinVersion").get()
 
 fun mindustry(module: String): String{
     return "com.github.Anuken.Mindustry$module:$mindustryVersion"
