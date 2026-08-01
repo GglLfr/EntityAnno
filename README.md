@@ -14,7 +14,7 @@ This project is licensed under [GNU GPL v3](/LICENSE).
 ## Version Compatibility
 | `Mindustry`/`Arc` | `EntityAnno` |
 |-------------------|--------------|
-| `v159.7+`         | `v159.7.2`   |
+| `v159.7+`         | `v159.7.3`   |
 | `v158+`           | `v158.0.0`   |
 | `v147`-`v157.4`   | `v149.0.0`   |
 | `v146`            | `v146.0.11`  |

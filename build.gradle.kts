@@ -81,8 +81,9 @@ allprojects{
             isIncremental = true
             isFork = false
             encoding = "UTF-8"
-            compilerArgs.add("-Xlint:-options")
 
+            compilerArgs.add("-Xlint:-options")
+            compilerArgs.add("-implicit:none")
             compilerArgs.addAll(providers.gradleProperty("org.gradle.jvmargs").get()
                 .split(Regex("\\s+"))
                 .filter{it.startsWith("--add-opens")}

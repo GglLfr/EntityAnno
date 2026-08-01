@@ -10,8 +10,7 @@ import org.gradle.api.plugins.*;
 import org.gradle.api.tasks.bundling.*;
 import org.jetbrains.kotlin.gradle.internal.*;
 import org.jetbrains.kotlin.gradle.plugin.*;
-import org.jetbrains.kotlin.gradle.tasks.Kapt;
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile;
+import org.jetbrains.kotlin.gradle.tasks.*;
 
 import java.io.*;
 import java.util.concurrent.*;
@@ -140,6 +139,7 @@ public class EntityAnnoPlugin implements Plugin<Project>{
         project.afterEvaluate(p -> {
             // Configure KAPT extension and add annotation processor options.
             var kaptExt = exts.getByType(KaptExtension.class);
+            kaptExt.getJavacOptions().put("-implicit:none", "");
             kaptExt.setKeepJavacAnnotationProcessors(true);
             kaptExt.arguments(args -> {
                 args.arg("modName", ext.getModName().get());
