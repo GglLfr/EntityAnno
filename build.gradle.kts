@@ -10,8 +10,8 @@ val mindustryVersion = providers.gradleProperty("mindustryVersion").get()
 val javapoetVersion = providers.gradleProperty("javapoetVersion").get()
 val kotlinVersion = providers.gradleProperty("kotlinVersion").get()
 
-fun mindustry(module: String): String{
-    return "com.github.Anuken.Mindustry$module:$mindustryVersion"
+fun mindustry(): String{
+    return "com.github.Anuken:Mindustry:$mindustryVersion"
 }
 
 fun javapoet(): String{
@@ -66,7 +66,7 @@ allprojects{
                 metadataSources{artifact()}
             }
             content{
-                includeVersion("com.github.Anuken.Mindustry", "core", mindustryVersion)
+                includeVersion("com.github.Anuken", "Mindustry", mindustryVersion)
             }
         }
     }
@@ -126,7 +126,7 @@ project(":entity"){
 
     sourceSets["main"].resources.setSrcDirs(listOf(layout.projectDirectory.dir("assets")))
     dependencies{
-        implementation(mindustry(":core"))
+        implementation(mindustry())
         implementation(javapoet())
     }
 }
@@ -195,7 +195,7 @@ project(":"){
     }
 
     dependencies{
-        implementation(mindustry(":core"))
+        implementation(mindustry())
         implementation(kotlinPlugin("jvm"))
         implementation(kotlinPlugin("kapt"))
     }
