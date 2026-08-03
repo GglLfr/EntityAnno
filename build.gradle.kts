@@ -11,7 +11,7 @@ val javapoetVersion = providers.gradleProperty("javapoetVersion").get()
 val kotlinVersion = providers.gradleProperty("kotlinVersion").get()
 
 fun mindustry(): String{
-    return "com.github.Anuken:Mindustry:$mindustryVersion"
+    return "Anuken:Mindustry:$mindustryVersion"
 }
 
 fun javapoet(): String{
@@ -66,7 +66,7 @@ allprojects{
                 metadataSources{artifact()}
             }
             content{
-                includeVersion("com.github.Anuken", "Mindustry", mindustryVersion)
+                includeVersion("Anuken", "Mindustry", mindustryVersion)
             }
         }
     }
