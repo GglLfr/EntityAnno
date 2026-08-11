@@ -23,4 +23,7 @@ public interface EntityAnnoExtension{
     Property<String> getGenSrcPackage();
     /** @return Package name for root generated package, typically {@code modname.gen}. */
     Property<String> getGenPackage();
+
+    /** @return Whether to enable the compileKotlin task and other related tasks. Useful for Kotlin-based mods, but the entity classes can only be written in Java. */
+    Property<Boolean> getEnableKotlin();
 }

@@ -26,16 +26,18 @@ public class EntityAnnoPlugin implements Plugin<Project>{
         var exts = project.getExtensions();
         var tasks = project.getTasks();
 
+        var ext = exts.create("entityAnno", EntityAnnoExtension.class);
+        var enableKotlin = ext.getEnableKotlin().getOrElse(false);
+
         var props = exts.getByType(ExtraPropertiesExtension.class);
-        // Don't include Kotlin standard libraries, we absolutely do not need those bloats.
-        props.set("kotlin.stdlib.default.dependency", "false");
+        // Only include Kotlin standard libraries when needed, but otherwise, we absolutely do not need those bloats.
+        if(!enableKotlin) props.set("kotlin.stdlib.default.dependency", "false");
 
         // Apply 'java', 'kotlin-jvm', and 'kotlin-kapt' plugins.
         plugins.apply("java");
         plugins.apply(KotlinPluginWrapper.class);
         plugins.apply(Kapt3GradleSubplugin.class);
 
-        var ext = exts.create("entityAnno", EntityAnnoExtension.class);
         var fetchDir = project.getLayout().getBuildDirectory().dir("fetched");
         var fetchComps = tasks.register("fetchComps", t -> {
             t.getInputs().property("version", project.provider(ext.getMindustryVersion()::get));
@@ -172,10 +174,10 @@ public class EntityAnnoPlugin implements Plugin<Project>{
             // Prevent running these tasks to speed up compile-time.
             var conf = tasks.findByPath("checkKotlinGradlePluginConfigurationErrors");
             if(conf != null) {
-                conf.onlyIf(spec -> false);
+                conf.onlyIf(spec -> enableKotlin);
             }
 
-            tasks.withType(KotlinCompile.class, t -> t.onlyIf(spec -> false));
+            tasks.withType(KotlinCompile.class, t -> t.onlyIf(spec -> enableKotlin));
         });
     }
 
