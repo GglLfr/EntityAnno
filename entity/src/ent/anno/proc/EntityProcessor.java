@@ -4,23 +4,21 @@ import arc.files.*;
 import arc.func.*;
 import arc.struct.*;
 import arc.util.*;
-import arc.util.pooling.*;
 import arc.util.pooling.Pool.*;
+import arc.util.pooling.*;
 import com.squareup.javapoet.*;
 import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.code.Symbol.*;
-import com.sun.tools.javac.tree.*;
 import com.sun.tools.javac.tree.JCTree.*;
-import ent.anno.*;
+import com.sun.tools.javac.tree.*;
 import ent.anno.Annotations.*;
+import ent.anno.*;
 import ent.anno.TypeIOResolver.*;
 import mindustry.gen.*;
 
 import javax.annotation.processing.*;
 import javax.lang.model.element.*;
 import java.io.*;
-import java.lang.*;
-import java.lang.Class;
 import java.util.*;
 
 import static javax.lang.model.element.ElementKind.*;
@@ -123,7 +121,8 @@ public class EntityProcessor extends BaseProcessor{
 
                 for(var e : this.<MethodSymbol>with(Wrap.class)){
                     if(!e.params.isEmpty()) err("All @Wrap methods must not have parameters", e);
-                    if(e.getReturnType().getKind() != BOOLEAN) err("All @Wrap methods must have boolean return type", e);
+                    if(e.getReturnType().getKind() != BOOLEAN)
+                        err("All @Wrap methods must have boolean return type", e);
 
                     var type = comps.get(name(e.enclClass()));
                     if(type == null) continue;
@@ -150,11 +149,11 @@ public class EntityProcessor extends BaseProcessor{
                     comp(PowerGraphUpdaterc.class), "powerGraph"
                 );
 
-		groupExclusions.put("all", Seq.with(
-		    comp(Unitc.class),
-		    comp(Bulletc.class),
-		    comp(PowerGraphUpdaterc.class)
-		));
+                groupExclusions.put("all", Seq.with(
+                    comp(Unitc.class),
+                    comp(Bulletc.class),
+                    comp(PowerGraphUpdaterc.class)
+                ));
 
                 for(var s : elements.getPackageElement("mindustry.gen").getEnclosedElements()){
                     var name = name(s);
@@ -188,16 +187,17 @@ public class EntityProcessor extends BaseProcessor{
                     var compAnno = anno(comp, EntityComponent.class);
                     if(!compAnno.vanilla()){
                         var intBuilder = TypeSpec.interfaceBuilder(intName(comp))
-                            .addOriginatingElement(comp)
-                            .addModifiers(PUBLIC, ABSTRACT)
-                            .addAnnotation(spec(EntityInterface.class))
-                            .addAnnotation(
-                                AnnotationSpec.builder(spec(SuppressWarnings.class))
-                                    .addMember("value", "{$S, $S, $S}", "all", "unchecked", "deprecation")
-                                .build()
-                            );
+                                             .addOriginatingElement(comp)
+                                             .addModifiers(PUBLIC, ABSTRACT)
+                                             .addAnnotation(spec(EntityInterface.class))
+                                             .addAnnotation(
+                                                 AnnotationSpec.builder(spec(SuppressWarnings.class))
+                                                     .addMember("value", "{$S, $S, $S}", "all", "unchecked", "deprecation")
+                                                     .build()
+                                             );
 
-                        for(var ext : comp.getInterfaces()) if(!isCompInter(conv(ext))) intBuilder.addSuperinterface(spec(ext));
+                        for(var ext : comp.getInterfaces())
+                            if(!isCompInter(conv(ext))) intBuilder.addSuperinterface(spec(ext));
                         for(var dep : deps) intBuilder.addSuperinterface(procName(dep, this::intName));
 
                         ObjectSet<String> signatures = new ObjectSet<>();
@@ -208,8 +208,8 @@ public class EntityProcessor extends BaseProcessor{
                             signatures.add(sigName(e));
                             if(anno(e, Override.class) == null){
                                 var methBuilder = MethodSpec.methodBuilder(name(e))
-                                    .addModifiers(PUBLIC, ABSTRACT)
-                                    .returns(spec(e.getReturnType()));
+                                                      .addModifiers(PUBLIC, ABSTRACT)
+                                                      .returns(spec(e.getReturnType()));
 
                                 for(var t : e.getTypeParameters()) methBuilder.addTypeVariable(spec(t));
                                 for(var t : e.getThrownTypes()) methBuilder.addException(spec(t));
@@ -218,18 +218,20 @@ public class EntityProcessor extends BaseProcessor{
                             }
                         }
                         for(var s : comp.getEnclosedElements()){
-                            if(isAny(s, PRIVATE, STATIC) || s.getKind() != FIELD || anno(s, Import.class) != null) continue;
+                            if(isAny(s, PRIVATE, STATIC) || s.getKind() != FIELD || anno(s, Import.class) != null)
+                                continue;
                             var v = (VarSymbol)s;
                             var name = name(v);
 
                             if(!signatures.contains(name + "()")){
                                 var getter = MethodSpec.methodBuilder(name)
-                                    .addModifiers(PUBLIC, ABSTRACT)
-                                    .returns(spec(v.type));
+                                                 .addModifiers(PUBLIC, ABSTRACT)
+                                                 .returns(spec(v.type));
 
                                 for(var anno : v.getAnnotationMirrors()){
                                     var aname = name(anno.type.tsym);
-                                    if(aname.contains("Null") || aname.contains("Deprecated")) getter.addAnnotation(spec((ClassSymbol)anno.type.tsym));
+                                    if(aname.contains("Null") || aname.contains("Deprecated"))
+                                        getter.addAnnotation(spec((ClassSymbol)anno.type.tsym));
                                 }
 
                                 intBuilder.addMethod(getter.build());
@@ -237,13 +239,14 @@ public class EntityProcessor extends BaseProcessor{
 
                             if(!is(v, FINAL) && anno(v, ReadOnly.class) == null && !signatures.contains(name + "(" + v.type + ")")){
                                 var setter = MethodSpec.methodBuilder(name)
-                                    .addModifiers(PUBLIC, ABSTRACT)
-                                    .returns(TypeName.VOID);
+                                                 .addModifiers(PUBLIC, ABSTRACT)
+                                                 .returns(TypeName.VOID);
 
                                 var param = ParameterSpec.builder(spec(v.type), name(v));
                                 for(var anno : v.getAnnotationMirrors()){
                                     var aname = name(anno.type.tsym);
-                                    if(aname.contains("Null") || aname.contains("Deprecated")) param.addAnnotation(spec((ClassSymbol)anno.type.tsym));
+                                    if(aname.contains("Null") || aname.contains("Deprecated"))
+                                        param.addAnnotation(spec((ClassSymbol)anno.type.tsym));
                                 }
 
                                 intBuilder.addMethod(setter.addParameter(param.build()).build());
@@ -258,8 +261,8 @@ public class EntityProcessor extends BaseProcessor{
                             if(anno(comp, EntityDef.class) == null){
                                 var tname = baseName(comp);
                                 var base = TypeSpec.classBuilder(tname)
-                                    .addModifiers(PUBLIC, ABSTRACT)
-                                    .addOriginatingElement(comp);
+                                               .addModifiers(PUBLIC, ABSTRACT)
+                                               .addOriginatingElement(comp);
 
                                 for(var dep : baseDeps){
                                     for(var s : dep.getEnclosedElements()){
@@ -304,7 +307,7 @@ public class EntityProcessor extends BaseProcessor{
 
                 OrderedMap<String, ClassSymbol> defComps = new OrderedMap<>();
                 ObjectMap<String, ClassSymbol> defCompsResolve = new ObjectMap<>();
-		Seq<ClassSymbol> valueComps = new Seq<>(false);
+                Seq<ClassSymbol> valueComps = new Seq<>(false);
 
                 Seq<String> defGroups = new Seq<>(false);
                 ObjectSet<ClassSymbol> excludeGroups = new ObjectSet<>();
@@ -355,14 +358,15 @@ public class EntityProcessor extends BaseProcessor{
                     if(!registers.add(name)) continue;
 
                     defCompsResolve.clear();
-                    for(var comp : defComps.values()) for(var dep : dependencies(comp)) defCompsResolve.put(name(dep), dep);
+                    for(var comp : defComps.values())
+                        for(var dep : dependencies(comp)) defCompsResolve.put(name(dep), dep);
                     defComps.putAll(defCompsResolve);
 
-		    valueComps.clear();
+                    valueComps.clear();
                     defGroups.clear();
                     excludeGroups.clear();
                     for(var comp : defComps.values()){
-			valueComps.add(comp);
+                        valueComps.add(comp);
                         var ex = anno(comp, ExcludeGroups.class);
                         if(ex != null){
                             for(var i : types(ex::value)){
@@ -373,23 +377,23 @@ public class EntityProcessor extends BaseProcessor{
                     }
 
                     for(var comp : defComps.values()){
-		        if(excludeGroups.contains(comp) || !groups.containsKey(comp)) continue;
+                        if(excludeGroups.contains(comp) || !groups.containsKey(comp)) continue;
 
-			var val = groups.get(comp);
+                        var val = groups.get(comp);
 
-			Seq<ClassSymbol> exclusions = groupExclusions.get(val);
-			if(exclusions != null && exclusions.contains(c -> valueComps.contains(c))) continue;
+                        Seq<ClassSymbol> exclusions = groupExclusions.get(val);
+                        if(exclusions != null && exclusions.contains(valueComps::contains)) continue;
 
-			defGroups.add(val);
-		    }
+                        defGroups.add(val);
+                    }
 
                     var builder = TypeSpec.classBuilder(name)
-                        .addModifiers(PUBLIC)
-                        .addAnnotation(
-                            AnnotationSpec.builder(SuppressWarnings.class)
-                                .addMember("value", "{$S, $S, $S}", "all", "unchecked", "deprecation")
-                            .build()
-                        );
+                                      .addModifiers(PUBLIC)
+                                      .addAnnotation(
+                                          AnnotationSpec.builder(SuppressWarnings.class)
+                                              .addMember("value", "{$S, $S, $S}", "all", "unchecked", "deprecation")
+                                              .build()
+                                      );
 
                     for(var comp : defComps.values()) builder.addOriginatingElement(comp);
 
@@ -407,10 +411,12 @@ public class EntityProcessor extends BaseProcessor{
                     boolean isSync = defComps.containsKey("SyncComp");
                     for(var comp : defComps.values()){
                         var tmp = inserters.get(comp);
-                        if(tmp != null) for(var key : tmp.orderedKeys()) allInserters.get(key, Seq::new).addAll(tmp.get(key));
+                        if(tmp != null)
+                            for(var key : tmp.orderedKeys()) allInserters.get(key, Seq::new).addAll(tmp.get(key));
 
                         tmp = wrappers.get(comp);
-                        if(tmp != null) for(var key : tmp.orderedKeys()) allWrappers.get(key, Seq::new).addAll(tmp.get(key));
+                        if(tmp != null)
+                            for(var key : tmp.orderedKeys()) allWrappers.get(key, Seq::new).addAll(tmp.get(key));
 
                         boolean isShadowed = baseClassType != null && !typeIsBase && baseDependencies.get(baseClassType).contains(comp);
                         for(var s : comp.getEnclosedElements()){
@@ -476,7 +482,7 @@ public class EntityProcessor extends BaseProcessor{
                                 .returns(spec(String.class))
                                 .addModifiers(PUBLIC)
                                 .addStatement("return $S + $L", name + "#", "id")
-                            .build()
+                                .build()
                         );
                     }
 
@@ -492,8 +498,8 @@ public class EntityProcessor extends BaseProcessor{
                             var first = entries.first();
                             return
                                 name(v).equals(name(first)) &&
-                                first.getParameters().size() == 1 && same(first.getParameters().get(0).type, v.type) &&
-                                first.getReturnType().getKind() == VOID;
+                                    first.getParameters().size() == 1 && same(first.getParameters().get(0).type, v.type) &&
+                                    first.getReturnType().getKind() == VOID;
                         });
 
                         if(setter != null){
@@ -576,8 +582,8 @@ public class EntityProcessor extends BaseProcessor{
 
                         boolean isPrivate = is(m, PRIVATE);
                         var methBuilder = MethodSpec.methodBuilder(mname)
-                            .addModifiers(isPrivate ? PRIVATE : PUBLIC)
-                            .returns(spec(m.getReturnType()));
+                                              .addModifiers(isPrivate ? PRIVATE : PUBLIC)
+                                              .returns(spec(m.getReturnType()));
 
                         if(!isPrivate && !is(m, STATIC)) methBuilder.addAnnotation(spec(Override.class));
                         if(is(m, STATIC)) methBuilder.addModifiers(STATIC);
@@ -671,13 +677,15 @@ public class EntityProcessor extends BaseProcessor{
                             methBuilder.beginControlFlow(format.append(")").toString(), tmpArgs.toArray());
                         }
 
-                        for(var e : standaloneInserts) if(!anno(e, Insert.class).after()) methBuilder.addStatement("this.$L()", name(e));
+                        for(var e : standaloneInserts)
+                            if(!anno(e, Insert.class).after()) methBuilder.addStatement("this.$L()", name(e));
 
                         allFields.sortComparing(BaseProcessor::name);
                         syncedFields.sortComparing(BaseProcessor::name);
 
                         if(hasIO){
-                            if(io == null) io = new EntityIO(this, name, builder, allFieldSpecs, serializer, revDir.child(name));
+                            if(io == null)
+                                io = new EntityIO(this, name, builder, allFieldSpecs, serializer, revDir.child(name));
                             if((mname.equals("read") || mname.equals("write"))){
                                 io.write(methBuilder, mname.equals("write"), allFields);
                             }
@@ -715,8 +723,10 @@ public class EntityProcessor extends BaseProcessor{
 
                         append(methBuilder, defComps.values(), entries, inserts, wraps, writeBlock, setter);
 
-                        for(var e : standaloneInserts) if(anno(e, Insert.class).after()) methBuilder.addStatement("this.$L()", name(e));
-                        if(defAnno.pooled() && mname.equals("remove")) methBuilder.addStatement("$T.queueFree(this)", spec(Groups.class));
+                        for(var e : standaloneInserts)
+                            if(anno(e, Insert.class).after()) methBuilder.addStatement("this.$L()", name(e));
+                        if(defAnno.pooled() && mname.equals("remove"))
+                            methBuilder.addStatement("$T.queueFree(this)", spec(Groups.class));
 
                         if(!standaloneWraps.isEmpty()) methBuilder.endControlFlow();
                         builder.addMethod(methBuilder.build());
@@ -728,7 +738,7 @@ public class EntityProcessor extends BaseProcessor{
                                 .addAnnotation(spec(Override.class))
                                 .returns(TypeName.BOOLEAN)
                                 .addStatement("return " + defAnno.serialize())
-                            .build()
+                                .build()
                         );
                     }
 
@@ -736,8 +746,8 @@ public class EntityProcessor extends BaseProcessor{
                         builder.addSuperinterface(spec(Poolable.class));
 
                         var resetBuilder = MethodSpec.methodBuilder("reset")
-                            .addModifiers(PUBLIC)
-                            .addAnnotation(spec(Override.class));
+                                               .addModifiers(PUBLIC)
+                                               .addAnnotation(spec(Override.class));
 
                         allFieldSpecs.sortComparing(s -> s.name);
                         for(var spec : allFieldSpecs){
@@ -746,8 +756,8 @@ public class EntityProcessor extends BaseProcessor{
 
                             var desc = desc(v);
                             resetBuilder.addStatement("this.$L = $L", spec.name, varInitializers.containsKey(desc)
-                                ? varInitializers.get(desc)
-                                : spec.type.isPrimitive() ? getDefault(spec.type.toString()) : "null"
+                                                                                     ? varInitializers.get(desc)
+                                                                                     : spec.type.isPrimitive() ? getDefault(spec.type.toString()) : "null"
                             );
                         }
 
@@ -755,8 +765,8 @@ public class EntityProcessor extends BaseProcessor{
                     }
 
                     var creator = MethodSpec.methodBuilder("create")
-                        .addModifiers(PUBLIC, STATIC)
-                        .returns(ClassName.get(packageName, name));
+                                      .addModifiers(PUBLIC, STATIC)
+                                      .returns(ClassName.get(packageName, name));
 
                     if(defAnno.pooled()){
                         creator.addStatement("return $T.obtain($T.class, $T::new)", spec(Pools.class), ClassName.get(packageName, name), ClassName.get(packageName, name));
@@ -772,96 +782,96 @@ public class EntityProcessor extends BaseProcessor{
                 }
 
                 var registry = TypeSpec.classBuilder("EntityRegistry")
-                    .addModifiers(PUBLIC, FINAL)
-                    .addAnnotation(
-                        AnnotationSpec.builder(spec(SuppressWarnings.class))
-                            .addMember("value", "$S", "unchecked")
-                            .build()
-                    )
-                    .addField(
-                        FieldSpec.builder(
-                            paramSpec(spec(ObjectMap.class), spec(String.class), paramSpec(spec(Prov.class), subSpec(spec(Entityc.class)))),
-                            "map",
-                            PRIVATE, STATIC, FINAL
-                        )
-                            .initializer("new $T<>()", spec(ObjectMap.class))
-                        .build()
-                    )
-                    .addField(
-                        FieldSpec.builder(
-                            paramSpec(spec(ObjectIntMap.class), paramSpec(spec(Class.class), subSpec(spec(Entityc.class)))),
-                            "ids",
-                            PRIVATE, STATIC, FINAL
-                        )
-                            .initializer("new $T<>()", spec(ObjectIntMap.class)).
-                        build()
-                    )
-                    .addMethod(
-                        MethodSpec.constructorBuilder()
-                            .addModifiers(PRIVATE)
-                            .addStatement("throw new $T()", spec(AssertionError.class))
-                        .build()
-                    )
-                    .addMethod(
-                        MethodSpec.methodBuilder("get")
-                            .addModifiers(PUBLIC, STATIC)
-                            .addTypeVariable(tvSpec("T", spec(Entityc.class)))
-                            .returns(paramSpec(spec(Prov.class), tvSpec("T")))
-                            .addParameter(paramSpec(spec(Class.class), tvSpec("T")), "type")
-                            .addStatement("return get(type.getCanonicalName())")
-                        .build()
-                    )
-                    .addMethod(
-                        MethodSpec.methodBuilder("get")
-                            .addModifiers(PUBLIC, STATIC)
-                            .addTypeVariable(tvSpec("T", spec(Entityc.class)))
-                            .returns(paramSpec(spec(Prov.class), tvSpec("T")))
-                            .addParameter(spec(String.class), "name")
-                            .addStatement("return ($T)map.get(name)", paramSpec(spec(Prov.class), tvSpec("T")))
-                        .build()
-                    )
-                    .addMethod(
-                        MethodSpec.methodBuilder("getID")
-                            .addModifiers(PUBLIC, STATIC)
-                            .returns(TypeName.INT)
-                            .addParameter(paramSpec(spec(Class.class), subSpec(spec(Entityc.class))), "type")
-                            .addStatement("return ids.get(type, -1)")
-                        .build()
-                    )
-                    .addMethod(
-                        MethodSpec.methodBuilder("register")
-                            .addModifiers(PUBLIC, STATIC)
-                            .addTypeVariable(tvSpec("T", spec(Entityc.class)))
-                            .returns(TypeName.VOID)
-                            .addParameter(spec(String.class), "name")
-                            .addParameter(paramSpec(spec(Class.class), tvSpec("T")), "type")
-                            .addParameter(paramSpec(spec(Prov.class), subSpec(tvSpec("T"))), "prov")
-                            .addStatement("map.put(name, prov)")
-                            .addStatement("ids.put(type, $T.register(name, prov))", spec(EntityMapping.class))
-                        .build()
-                    )
-                    .addMethod(
-                        MethodSpec.methodBuilder("content")
-                            .addModifiers(PUBLIC, STATIC)
-                            .addTypeVariable(tvSpec("T"))
-                            .addTypeVariable(tvSpec("E", spec(Entityc.class)))
-                            .returns(tvSpec("T"))
-                            .addParameter(spec(String.class), "name")
-                            .addParameter(paramSpec(spec(Class.class), tvSpec("E")), "type")
-                            .addParameter(paramSpec(spec(Func.class), spec(String.class), subSpec(tvSpec("T"))), "create")
-                            .beginControlFlow("if(type.getName().startsWith($S))", "mindustry.gen.")
-                                .addStatement("var prov = $T.find($T.idMap, p -> p != null && p.get().getClass().equals(type))", spec(Structs.class), spec(EntityMapping.class))
-                                .addStatement("$T.nameMap.put($S + name, prov)", spec(EntityMapping.class), modName + "-")
-                            .nextControlFlow("else")
-                                .addStatement("$T.nameMap.put($S + name, get(type))", spec(EntityMapping.class), modName + "-")
-                            .endControlFlow()
-                            .addStatement("return create.get(name)")
-                        .build()
-                    );
+                                   .addModifiers(PUBLIC, FINAL)
+                                   .addAnnotation(
+                                       AnnotationSpec.builder(spec(SuppressWarnings.class))
+                                           .addMember("value", "$S", "unchecked")
+                                           .build()
+                                   )
+                                   .addField(
+                                       FieldSpec.builder(
+                                               paramSpec(spec(ObjectMap.class), spec(String.class), paramSpec(spec(Prov.class), subSpec(spec(Entityc.class)))),
+                                               "map",
+                                               PRIVATE, STATIC, FINAL
+                                           )
+                                           .initializer("new $T<>()", spec(ObjectMap.class))
+                                           .build()
+                                   )
+                                   .addField(
+                                       FieldSpec.builder(
+                                               paramSpec(spec(ObjectIntMap.class), paramSpec(spec(Class.class), subSpec(spec(Entityc.class)))),
+                                               "ids",
+                                               PRIVATE, STATIC, FINAL
+                                           )
+                                           .initializer("new $T<>()", spec(ObjectIntMap.class)).
+                                           build()
+                                   )
+                                   .addMethod(
+                                       MethodSpec.constructorBuilder()
+                                           .addModifiers(PRIVATE)
+                                           .addStatement("throw new $T()", spec(AssertionError.class))
+                                           .build()
+                                   )
+                                   .addMethod(
+                                       MethodSpec.methodBuilder("get")
+                                           .addModifiers(PUBLIC, STATIC)
+                                           .addTypeVariable(tvSpec("T", spec(Entityc.class)))
+                                           .returns(paramSpec(spec(Prov.class), tvSpec("T")))
+                                           .addParameter(paramSpec(spec(Class.class), tvSpec("T")), "type")
+                                           .addStatement("return get(type.getCanonicalName())")
+                                           .build()
+                                   )
+                                   .addMethod(
+                                       MethodSpec.methodBuilder("get")
+                                           .addModifiers(PUBLIC, STATIC)
+                                           .addTypeVariable(tvSpec("T", spec(Entityc.class)))
+                                           .returns(paramSpec(spec(Prov.class), tvSpec("T")))
+                                           .addParameter(spec(String.class), "name")
+                                           .addStatement("return ($T)map.get(name)", paramSpec(spec(Prov.class), tvSpec("T")))
+                                           .build()
+                                   )
+                                   .addMethod(
+                                       MethodSpec.methodBuilder("getID")
+                                           .addModifiers(PUBLIC, STATIC)
+                                           .returns(TypeName.INT)
+                                           .addParameter(paramSpec(spec(Class.class), subSpec(spec(Entityc.class))), "type")
+                                           .addStatement("return ids.get(type, -1)")
+                                           .build()
+                                   )
+                                   .addMethod(
+                                       MethodSpec.methodBuilder("register")
+                                           .addModifiers(PUBLIC, STATIC)
+                                           .addTypeVariable(tvSpec("T", spec(Entityc.class)))
+                                           .returns(TypeName.VOID)
+                                           .addParameter(spec(String.class), "name")
+                                           .addParameter(paramSpec(spec(Class.class), tvSpec("T")), "type")
+                                           .addParameter(paramSpec(spec(Prov.class), subSpec(tvSpec("T"))), "prov")
+                                           .addStatement("map.put(name, prov)")
+                                           .addStatement("ids.put(type, $T.register(name, prov))", spec(EntityMapping.class))
+                                           .build()
+                                   )
+                                   .addMethod(
+                                       MethodSpec.methodBuilder("content")
+                                           .addModifiers(PUBLIC, STATIC)
+                                           .addTypeVariable(tvSpec("T"))
+                                           .addTypeVariable(tvSpec("E", spec(Entityc.class)))
+                                           .returns(tvSpec("T"))
+                                           .addParameter(spec(String.class), "name")
+                                           .addParameter(paramSpec(spec(Class.class), tvSpec("E")), "type")
+                                           .addParameter(paramSpec(spec(Func.class), spec(String.class), subSpec(tvSpec("T"))), "create")
+                                           .beginControlFlow("if(type.getName().startsWith($S))", "mindustry.gen.")
+                                           .addStatement("var prov = $T.find($T.idMap, p -> p != null && p.get().getClass().equals(type))", spec(Structs.class), spec(EntityMapping.class))
+                                           .addStatement("$T.nameMap.put($S + name, prov)", spec(EntityMapping.class), modName + "-")
+                                           .nextControlFlow("else")
+                                           .addStatement("$T.nameMap.put($S + name, get(type))", spec(EntityMapping.class), modName + "-")
+                                           .endControlFlow()
+                                           .addStatement("return create.get(name)")
+                                           .build()
+                                   );
 
                 var register = MethodSpec.methodBuilder("register")
-                    .addModifiers(PUBLIC, STATIC)
-                    .returns(TypeName.VOID);
+                                   .addModifiers(PUBLIC, STATIC)
+                                   .returns(TypeName.VOID);
 
                 pointers.sort(Structs.comparing(BaseProcessor::fName));
                 for(var point : pointers){
@@ -887,7 +897,7 @@ public class EntityProcessor extends BaseProcessor{
                             .addAnnotation(spec(Override.class))
                             .returns(TypeName.INT)
                             .addStatement("return $T.getID($T.class)", ClassName.get(packageName, "EntityRegistry"), name)
-                        .build()
+                            .build()
                     );
 
                     ClassSymbol ext = null;
@@ -898,7 +908,8 @@ public class EntityProcessor extends BaseProcessor{
 
                     var methodNames = def.components.flatMap(t -> {
                         Seq<String> out = new Seq<>();
-                        for(var s : t.getEnclosedElements()) if(s.getKind() == METHOD) out.add(sigName((MethodSymbol)s));
+                        for(var s : t.getEnclosedElements())
+                            if(s.getKind() == METHOD) out.add(sigName((MethodSymbol)s));
 
                         return out;
                     }).asSet();
@@ -927,19 +938,19 @@ public class EntityProcessor extends BaseProcessor{
                                 MethodSpec result = null;
                                 if(m.getReturnType().getKind() != VOID){
                                     result = MethodSpec.methodBuilder(var)
-                                        .addModifiers(PUBLIC)
-                                        .addAnnotation(spec(Override.class))
-                                        .returns(spec(m.getReturnType()))
-                                        .addStatement("return $L", var)
-                                    .build();
+                                                 .addModifiers(PUBLIC)
+                                                 .addAnnotation(spec(Override.class))
+                                                 .returns(spec(m.getReturnType()))
+                                                 .addStatement("return $L", var)
+                                                 .build();
                                 }else if(!Seq.with(field.annotations).contains(f -> f.type.toString().equals("@" + fName(ReadOnly.class)))){
                                     result = MethodSpec.methodBuilder(var)
-                                        .addModifiers(PUBLIC)
-                                        .addAnnotation(spec(Override.class))
-                                        .returns(TypeName.VOID)
-                                        .addParameter(field.type, var)
-                                        .addStatement("this.$L = $L", var, var)
-                                    .build();
+                                                 .addModifiers(PUBLIC)
+                                                 .addAnnotation(spec(Override.class))
+                                                 .returns(TypeName.VOID)
+                                                 .addParameter(field.type, var)
+                                                 .addStatement("this.$L = $L", var, var)
+                                                 .build();
                                 }
 
                                 if(result != null){
@@ -955,7 +966,8 @@ public class EntityProcessor extends BaseProcessor{
                                     }else if(ext != null){
                                         VarSymbol superField = null;
                                         for(var sym : ext.getEnclosedElements()){
-                                            if(sym.getKind() == FIELD && name(sym).equals(var)) superField = (VarSymbol)sym;
+                                            if(sym.getKind() == FIELD && name(sym).equals(var))
+                                                superField = (VarSymbol)sym;
                                         }
 
                                         if(superField != null){
@@ -963,7 +975,8 @@ public class EntityProcessor extends BaseProcessor{
                                             for(var sym : ext.getEnclosedElements()){
                                                 if(sym.getKind() == METHOD && name(sym).equals(var)){
                                                     var msym = (MethodSymbol)sym;
-                                                    if(spec(msym.getReturnType()).equals(result.returnType)) targetMethod = msym;
+                                                    if(spec(msym.getReturnType()).equals(result.returnType))
+                                                        targetMethod = msym;
                                                 }
                                             }
 
@@ -982,7 +995,8 @@ public class EntityProcessor extends BaseProcessor{
 
                 for(var base : baseClasses.values()){
                     imports.clear();
-                    for(var dep : baseDependencies.get(comp(Reflect.get(base, "name") + "Comp"))) imports.addAll(this.imports.get(dep));
+                    for(var dep : baseDependencies.get(comp(Reflect.get(base, "name") + "Comp")))
+                        imports.addAll(this.imports.get(dep));
 
                     write(base, imports);
                 }
@@ -1017,7 +1031,8 @@ public class EntityProcessor extends BaseProcessor{
                 }
 
                 var insertComp = tmpMethods.selectFrom(inserts, e -> baseName(comp(type(anno(e, Insert.class)::block))).toLowerCase().equals(blockName));
-                for(var e : insertComp) if(!anno(e, Insert.class).after()) methBuilder.addStatement("this.$L()", name(e));
+                for(var e : insertComp)
+                    if(!anno(e, Insert.class).after()) methBuilder.addStatement("this.$L()", name(e));
 
                 if(!isAny(m, ABSTRACT, NATIVE)){
                     if(writeBlock) methBuilder.beginControlFlow("$L:", blockName);
@@ -1025,7 +1040,8 @@ public class EntityProcessor extends BaseProcessor{
                     if(writeBlock) methBuilder.endControlFlow();
                 }
 
-                for(var e : insertComp) if(anno(e, Insert.class).after()) methBuilder.addStatement("this.$L()", name(e));
+                for(var e : insertComp)
+                    if(anno(e, Insert.class).after()) methBuilder.addStatement("this.$L()", name(e));
                 if(wrapped) methBuilder.endControlFlow();
             }
 
@@ -1098,12 +1114,13 @@ public class EntityProcessor extends BaseProcessor{
                     }
                 }
             }).printStats(block.stats);
-        }catch(IOException ignored){}
+        }catch(IOException ignored){
+        }
         return writer.toString()
-            .replaceAll("this\\.<(.*)>self\\(\\)", "this")
-            .replaceAll("self\\(\\)(?!\\s+instanceof)", "this")
-            .replaceAll(" yield ", "")
-            .replaceAll("/\\*missing\\*/", "var");
+                   .replaceAll("this\\.<(.*)>self\\(\\)", "this")
+                   .replaceAll("self\\(\\)(?!\\s+instanceof)", "this")
+                   .replace(" yield ", "")
+                   .replaceAll("/\\*missing\\*/", "var");
     }
 
     protected boolean ext(ExecutableElement e, Iterable<ClassSymbol> defComps){

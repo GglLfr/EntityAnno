@@ -3,17 +3,13 @@ package ent.anno;
 import arc.func.*;
 import arc.struct.*;
 import arc.util.*;
-import arc.util.Log;
 import com.squareup.javapoet.*;
 import com.sun.source.tree.*;
 import com.sun.tools.javac.api.*;
 import com.sun.tools.javac.code.*;
+import com.sun.tools.javac.code.Attribute.*;
 import com.sun.tools.javac.code.Symbol.*;
-import com.sun.tools.javac.code.Attribute.Compound;
 import com.sun.tools.javac.model.*;
-import com.sun.tools.javac.processing.*;
-import com.sun.tools.javac.tree.*;
-import mindustry.*;
 
 import javax.annotation.processing.*;
 import javax.lang.model.*;
@@ -21,6 +17,7 @@ import javax.lang.model.element.*;
 import javax.lang.model.type.*;
 import javax.tools.Diagnostic.*;
 import java.io.*;
+import java.lang.Class;
 import java.lang.annotation.*;
 import java.util.*;
 import java.util.regex.*;
@@ -37,73 +34,62 @@ public abstract class BaseProcessor implements Processor{
     public String packageName;
     public String packageFetch;
 
-    public JavacFiler filer;
+    public Filer filer;
     public Messager messager;
 
     public JavacElements elements;
     public JavacTypes types;
     public JavacTrees trees;
-    public TreeMaker maker;
 
-    public JavacProcessingEnvironment procEnv;
-    public JavacRoundEnvironment roundEnv;
+    public RoundEnvironment roundEnv;
 
     protected int round = 0, rounds = 1;
     protected long initTime;
 
     protected static Pattern genStrip;
 
-    static{
-        Vars.loadLogger();
-    }
-
     @Override
     public synchronized void init(ProcessingEnvironment env){
-        procEnv = (JavacProcessingEnvironment)env;
-        var context = procEnv.getContext();
-
         modName = env.getOptions().get("modName");
         if(modName == null) throw new IllegalStateException("`modName` not supplied!");
 
         packageName = env.getOptions().get("genPackage");
         if(packageName == null) throw new IllegalStateException("`genPackage` not supplied!");
+        genStrip = Pattern.compile(packageName.replace(".", "\\.") + "\\.[^A-Z]*");
 
         packageFetch = env.getOptions().get("fetchPackage");
         if(packageFetch == null) throw new IllegalStateException("`fetchPackage` not supplied!");
 
-        genStrip = Pattern.compile(packageName.replace(".", "\\.") + "\\.[^A-Z]*");
-
-        filer = procEnv.getFiler();
-        messager = procEnv.getMessager();
-        elements = procEnv.getElementUtils();
-        types = procEnv.getTypeUtils();
-        trees = JavacTrees.instance(context);
-        maker = TreeMaker.instance(context);
+        filer = env.getFiler();
+        messager = env.getMessager();
+        elements = (JavacElements)env.getElementUtils();
+        types = (JavacTypes)env.getTypeUtils();
+        trees = JavacTrees.instance(env);
 
         initTime = Time.millis();
-        Log.info("@ started.", getClass().getSimpleName());
+        messager.printMessage(Kind.NOTE, String.format("%s started.", getClass().getSimpleName()));
     }
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv){
-        this.roundEnv = (JavacRoundEnvironment)roundEnv;
-        try{
-            while(round < rounds && !filer.newFiles()){
-                ++round;
-                process();
-            }
-        }catch(Throwable e){
-            var finalCause = Strings.getFinalCause(e);
+        this.roundEnv = roundEnv;
 
-            Log.err(finalCause);
-            throw new RuntimeException(finalCause);
+        if(round++ < rounds){
+            try{
+                process();
+            }catch(IOException e){
+                messager.printMessage(Kind.ERROR, Strings.getFinalMessage(e));
+            }
         }
 
-        if(roundEnv.processingOver()) Log.info("Time taken for @: @s", getClass().getSimpleName(), (Time.millis() - initTime) / 1000f);
-        return true;
+        if(roundEnv.processingOver())
+            messager.printMessage(Kind.NOTE, String.format("Time taken for %s: %sms", getClass().getSimpleName(), Time.millis() - initTime));
+
+        return round >= rounds;
     }
 
-    protected void process() throws IOException{}
+    protected void process() throws IOException{
+    }
 
     protected void write(TypeSpec.Builder builder, Seq<String> imports) throws IOException{
         builder.superinterfaces.sort(Structs.comparing(TypeName::toString));
@@ -111,9 +97,9 @@ public abstract class BaseProcessor implements Processor{
         builder.fieldSpecs.sort(Structs.comparing(f -> f.name));
 
         var file = JavaFile.builder(packageName, builder.build())
-            .indent("    ")
-            .skipJavaLangImports(true)
-            .build();
+                       .indent("    ")
+                       .skipJavaLangImports(true)
+                       .build();
 
         if(imports == null || imports.isEmpty()){
             file.writeTo(filer);
@@ -327,8 +313,8 @@ public abstract class BaseProcessor implements Processor{
         if(params.isEmpty()) return name(e) + "()";
 
         var builder = new StringBuilder(name(e))
-            .append("(")
-            .append(params.get(0).asType());
+                          .append("(")
+                          .append(params.get(0).asType());
 
         for(int i = 1; i < params.size(); i++) builder.append(", ").append(params.get(i).asType());
         return builder.append(")").toString();
