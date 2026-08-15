@@ -8,7 +8,6 @@ plugins{
 
 val mindustryVersion = providers.gradleProperty("mindustryVersion").get()
 val javapoetVersion = providers.gradleProperty("javapoetVersion").get()
-val kotlinVersion = providers.gradleProperty("kotlinVersion").get()
 
 fun mindustry(): String{
     return "Anuken:Mindustry:$mindustryVersion"
@@ -16,10 +15,6 @@ fun mindustry(): String{
 
 fun javapoet(): String{
     return "com.squareup:javapoet:$javapoetVersion"
-}
-
-fun kotlinPlugin(module: String): String{
-    return "org.jetbrains.kotlin.$module:org.jetbrains.kotlin.$module.gradle.plugin:$kotlinVersion"
 }
 
 fun commonPom(pom: MavenPom){
@@ -44,7 +39,6 @@ fun commonPom(pom: MavenPom){
 
 allprojects{
     apply(plugin = "java")
-    apply(plugin = "maven-publish")
 
     sourceSets["main"].java.setSrcDirs(listOf(layout.projectDirectory.dir("src")))
     group = "com.github.GglLfr.EntityAnno"
@@ -113,6 +107,8 @@ allprojects{
 }
 
 project(":entity"){
+    apply(plugin = "maven-publish")
+
     publishing.publications.register<MavenPublication>("maven"){
         from(components["java"])
         pom{
@@ -196,7 +192,5 @@ project(":"){
 
     dependencies{
         implementation(mindustry())
-        implementation(kotlinPlugin("jvm"))
-        implementation(kotlinPlugin("kapt"))
     }
 }

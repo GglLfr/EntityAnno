@@ -8,9 +8,7 @@ import org.gradle.api.*;
 import org.gradle.api.file.*;
 import org.gradle.api.plugins.*;
 import org.gradle.api.tasks.bundling.*;
-import org.jetbrains.kotlin.gradle.internal.*;
-import org.jetbrains.kotlin.gradle.plugin.*;
-import org.jetbrains.kotlin.gradle.tasks.*;
+import org.gradle.api.tasks.compile.*;
 
 import java.io.*;
 import java.util.concurrent.*;
@@ -27,20 +25,12 @@ public class EntityAnnoPlugin implements Plugin<Project>{
         var tasks = project.getTasks();
 
         var ext = exts.create("entityAnno", EntityAnnoExtension.class);
-        var enableKotlin = ext.getEnableKotlin().getOrElse(false);
-
-        var props = exts.getByType(ExtraPropertiesExtension.class);
-        // Only include Kotlin standard libraries when needed, but otherwise, we absolutely do not need those bloats.
-        if(!enableKotlin) props.set("kotlin.stdlib.default.dependency", "false");
-
-        // Apply 'java', 'kotlin-jvm', and 'kotlin-kapt' plugins.
+        // Apply 'java' plugin.
         plugins.apply("java");
-        plugins.apply(KotlinPluginWrapper.class);
-        plugins.apply(Kapt3GradleSubplugin.class);
 
         var fetchDir = project.getLayout().getBuildDirectory().dir("fetched");
         var fetchComps = tasks.register("fetchComps", t -> {
-            t.getInputs().property("version", project.provider(ext.getMindustryVersion()::get));
+            t.getInputs().property("version", ext.getMindustryVersion());
             t.getOutputs().dir(fetchDir);
 
             t.doFirst(tt -> {
@@ -73,7 +63,7 @@ public class EntityAnnoPlugin implements Plugin<Project>{
                 Queue<Future<?>> fetches = new Queue<>();
                 int[] remaining = {0, 0};
 
-                Http.get("https://api.github.com/repos/Anuken/Mindustry/contents/core/src/mindustry/entities/comp?ref=" + version)
+                Http.get(String.format("https://api.github.com/repos/Anuken/Mindustry/contents/core/src/mindustry/entities/comp?ref=%s", version))
                     .timeout(0)
                     .error(e -> { throw new RuntimeException(e); })
                     .block(res -> {
@@ -96,7 +86,7 @@ public class EntityAnnoPlugin implements Plugin<Project>{
 
                                     // Sanity checks, because this tends to happen to me.
                                     if(result.trim().replaceAll("\\s+", "").isEmpty()){
-                                        throw new IllegalStateException("Couldn't write `" + name + "`, got an empty string; re-check your connection.");
+                                        throw new IllegalStateException(String.format("Couldn't write `%s`, got an empty string; re-check your connection.", name));
                                     }
 
                                     loc
@@ -118,7 +108,7 @@ public class EntityAnnoPlugin implements Plugin<Project>{
                     }
                 }
 
-                if(remaining[0] != 0) throw new IllegalStateException("Couldn't write all components; found " + remaining[0] + " unwritten.");
+                if(remaining[0] != 0) throw new IllegalStateException(String.format("Couldn't write all components; found %s unwritten.", remaining[0]));
                 tt.getLogger().lifecycle("Wrote {} components.", remaining[1]);
             });
         });
@@ -139,28 +129,22 @@ public class EntityAnnoPlugin implements Plugin<Project>{
         }));
 
         project.afterEvaluate(p -> {
-            // Configure KAPT extension and add annotation processor options.
-            var kaptExt = exts.getByType(KaptExtension.class);
-            kaptExt.getJavacOptions().put("-implicit:none", "");
-            kaptExt.setKeepJavacAnnotationProcessors(true);
-            kaptExt.arguments(args -> {
-                args.arg("modName", ext.getModName().get());
-                args.arg("genPackage", ext.getGenPackage().get());
-                args.arg("fetchPackage", ext.getFetchPackage().get());
-                args.arg("revisionDir", ext.getRevisionDir().get().getAbsolutePath());
-                return null;
-            });
-
-            // Add fetched sources as KAPT input, and enable compile avoidance.
-            tasks.withType(Kapt.class, task -> {
-                task.getInputs().files(fetchComps);
-                task.getIncludeCompileClasspath().set(false);
-            });
-
             // Add `fetchDir` as Java source sets.
             exts.getByType(JavaPluginExtension.class)
                 .getSourceSets().getByName("main")
                 .getJava().srcDirs(fetchDir);
+
+            // Add fetched sources as `compileJava` input.
+            tasks.withType(JavaCompile.class, task -> {
+                task.getInputs().files(fetchComps);
+
+                var args = task.getOptions().getCompilerArgs();
+                args.add("-implicit:none");
+                args.add(String.format("-AmodName=%s", ext.getModName().get()));
+                args.add(String.format("-AgenPackage=%s", ext.getGenPackage().get()));
+                args.add(String.format("-AfetchPackage=%s", ext.getFetchPackage().get()));
+                args.add(String.format("-ArevisionDir=%s", ext.getRevisionDir().get().getAbsolutePath()));
+            });
 
             // Exclude fetched and generation source classes.
             tasks.withType(Jar.class, task -> {
@@ -170,14 +154,6 @@ public class EntityAnnoPlugin implements Plugin<Project>{
                     ext.getGenSrcPackage().get().replace('.', '/') + "/**"
                 );
             });
-
-            // Prevent running these tasks to speed up compile-time.
-            var conf = tasks.findByPath("checkKotlinGradlePluginConfigurationErrors");
-            if(conf != null) {
-                conf.onlyIf(spec -> enableKotlin);
-            }
-
-            tasks.withType(KotlinCompile.class, t -> t.onlyIf(spec -> enableKotlin));
         });
     }
 
