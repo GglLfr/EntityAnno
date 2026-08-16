@@ -29,6 +29,8 @@ public class EntityAnnoPlugin implements Plugin<Project>{
         plugins.apply("java");
 
         var fetchDir = project.getLayout().getBuildDirectory().dir("fetched");
+        var srcCacheDir = project.getLayout().getBuildDirectory().dir("src-cache");
+
         var fetchComps = tasks.register("fetchComps", t -> {
             t.getInputs().property("version", ext.getMindustryVersion());
             t.getOutputs().dir(fetchDir);
@@ -45,7 +47,9 @@ public class EntityAnnoPlugin implements Plugin<Project>{
                         String[] tag = {null};
                         Http.get("https://api.github.com/repos/Anuken/Mindustry/releases/latest")
                             .timeout(0)
-                            .error(e -> { throw new RuntimeException(e); })
+                            .error(e -> {
+                                throw new RuntimeException(e);
+                            })
                             .block(res -> tag[0] = Jval.read(res.getResultAsString()).get("tag_name").asString());
                         yield tag[0];
                     }
@@ -53,7 +57,9 @@ public class EntityAnnoPlugin implements Plugin<Project>{
                         String[] tag = {null};
                         Http.get("https://api.github.com/repos/Anuken/Mindustry/commits?per_page=1")
                             .timeout(0)
-                            .error(e -> { throw new RuntimeException(e); })
+                            .error(e -> {
+                                throw new RuntimeException(e);
+                            })
                             .block(res -> tag[0] = Jval.read(res.getResultAsString()).asArray().get(0).get("sha").asString());
                         yield tag[0];
                     }
@@ -65,7 +71,9 @@ public class EntityAnnoPlugin implements Plugin<Project>{
 
                 Http.get(String.format("https://api.github.com/repos/Anuken/Mindustry/contents/core/src/mindustry/entities/comp?ref=%s", version))
                     .timeout(0)
-                    .error(e -> { throw new RuntimeException(e); })
+                    .error(e -> {
+                        throw new RuntimeException(e);
+                    })
                     .block(res -> {
                         var list = Jval.read(res.getResultAsString()).asArray();
                         remaining[0] = remaining[1] = list.size;
@@ -79,7 +87,9 @@ public class EntityAnnoPlugin implements Plugin<Project>{
                         for(var val : list){
                             fetches.addLast(exec.submit(() -> Http.get(val.getString("download_url"))
                                 .timeout(0)
-                                .error(e -> { throw new RuntimeException(e); })
+                                .error(e -> {
+                                    throw new RuntimeException(e);
+                                })
                                 .block(comp -> {
                                     var result = comp.getResultAsString();
                                     var name = val.getString("name");
@@ -108,7 +118,8 @@ public class EntityAnnoPlugin implements Plugin<Project>{
                     }
                 }
 
-                if(remaining[0] != 0) throw new IllegalStateException(String.format("Couldn't write all components; found %s unwritten.", remaining[0]));
+                if(remaining[0] != 0)
+                    throw new IllegalStateException(String.format("Couldn't write all components; found %s unwritten.", remaining[0]));
                 tt.getLogger().lifecycle("Wrote {} components.", remaining[1]);
             });
         });
@@ -143,6 +154,7 @@ public class EntityAnnoPlugin implements Plugin<Project>{
                 args.add(String.format("-AmodName=%s", ext.getModName().get()));
                 args.add(String.format("-AgenPackage=%s", ext.getGenPackage().get()));
                 args.add(String.format("-AfetchPackage=%s", ext.getFetchPackage().get()));
+                args.add(String.format("-AcacheDir=%s", srcCacheDir.get().getAsFile().getAbsolutePath()));
                 args.add(String.format("-ArevisionDir=%s", ext.getRevisionDir().get().getAbsolutePath()));
             });
 

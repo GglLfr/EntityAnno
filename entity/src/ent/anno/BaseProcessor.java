@@ -4,12 +4,12 @@ import arc.func.*;
 import arc.struct.*;
 import arc.util.*;
 import com.squareup.javapoet.*;
-import com.sun.source.tree.*;
 import com.sun.tools.javac.api.*;
 import com.sun.tools.javac.code.*;
 import com.sun.tools.javac.code.Attribute.*;
 import com.sun.tools.javac.code.Symbol.*;
 import com.sun.tools.javac.model.*;
+import com.sun.tools.javac.processing.*;
 
 import javax.annotation.processing.*;
 import javax.lang.model.*;
@@ -64,7 +64,19 @@ public abstract class BaseProcessor implements Processor{
         messager = env.getMessager();
         elements = (JavacElements)env.getElementUtils();
         types = (JavacTypes)env.getTypeUtils();
-        trees = JavacTrees.instance(env);
+
+        if(env instanceof JavacProcessingEnvironment javacEnv){
+            trees = JavacTrees.instance(javacEnv);
+        }else{
+            try{
+                var f = env.getClass().getDeclaredField("delegate");
+                f.setAccessible(true);
+                trees = JavacTrees.instance((JavacProcessingEnvironment)f.get(env));
+            }catch(NoSuchFieldException | IllegalAccessException e){
+                messager.printMessage(Kind.ERROR, Strings.getFinalMessage(e));
+                throw new RuntimeException(e);
+            }
+        }
 
         initTime = Time.millis();
         messager.printMessage(Kind.NOTE, String.format("%s started.", getClass().getSimpleName()));
@@ -73,8 +85,10 @@ public abstract class BaseProcessor implements Processor{
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv){
         this.roundEnv = roundEnv;
-
         if(round++ < rounds){
+            if(roundEnv.processingOver())
+                messager.printMessage(Kind.ERROR, String.format("Trying to call %s#process() after processing is over", getClass().getSimpleName()));
+
             try{
                 process();
             }catch(IOException e){
@@ -85,11 +99,10 @@ public abstract class BaseProcessor implements Processor{
         if(roundEnv.processingOver())
             messager.printMessage(Kind.NOTE, String.format("Time taken for %s: %sms", getClass().getSimpleName(), Time.millis() - initTime));
 
-        return round >= rounds;
+        return round > rounds;
     }
 
-    protected void process() throws IOException{
-    }
+    protected abstract void process() throws IOException;
 
     protected void write(TypeSpec.Builder builder, Seq<String> imports) throws IOException{
         builder.superinterfaces.sort(Structs.comparing(TypeName::toString));
@@ -97,9 +110,9 @@ public abstract class BaseProcessor implements Processor{
         builder.fieldSpecs.sort(Structs.comparing(f -> f.name));
 
         var file = JavaFile.builder(packageName, builder.build())
-                       .indent("    ")
-                       .skipJavaLangImports(true)
-                       .build();
+            .indent("    ")
+            .skipJavaLangImports(true)
+            .build();
 
         if(imports == null || imports.isEmpty()){
             file.writeTo(filer);
@@ -130,12 +143,6 @@ public abstract class BaseProcessor implements Processor{
 
     public void err(String message, Element elem){
         messager.printMessage(Kind.ERROR, message, elem);
-    }
-
-    public Seq<String> imports(Element e){
-        Seq<String> out = new Seq<>();
-        for(ImportTree t : trees.getPath(e).getCompilationUnit().getImports()) out.add(t.toString());
-        return out;
     }
 
     public <T extends Symbol> Set<T> with(Class<? extends Annotation> annotation){
@@ -292,7 +299,7 @@ public abstract class BaseProcessor implements Processor{
         throw new IllegalArgumentException("types() is used for getting annotation values of class types.");
     }
 
-    public String desc(Element e){
+    public static String desc(Element e){
         return switch(e.getKind()){
             case FIELD, LOCAL_VARIABLE -> desc((VariableElement)e);
             case METHOD -> desc((ExecutableElement)e);
@@ -300,21 +307,21 @@ public abstract class BaseProcessor implements Processor{
         };
     }
 
-    public String desc(VariableElement e){
-        return e.getEnclosingElement().toString() + "#" + name(e);
+    public static String desc(VariableElement e){
+        return e.getEnclosingElement() + "#" + name(e);
     }
 
-    public String desc(ExecutableElement e){
-        return e.getEnclosingElement().toString() + "#" + sigName(e);
+    public static String desc(ExecutableElement e){
+        return e.getEnclosingElement() + "#" + sigName(e);
     }
 
-    public String sigName(ExecutableElement e){
+    public static String sigName(ExecutableElement e){
         var params = e.getParameters();
         if(params.isEmpty()) return name(e) + "()";
 
         var builder = new StringBuilder(name(e))
-                          .append("(")
-                          .append(params.get(0).asType());
+            .append("(")
+            .append(params.get(0).asType());
 
         for(int i = 1; i < params.size(); i++) builder.append(", ").append(params.get(i).asType());
         return builder.append(")").toString();
