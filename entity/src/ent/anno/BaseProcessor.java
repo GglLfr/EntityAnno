@@ -45,6 +45,7 @@ public abstract class BaseProcessor implements Processor{
 
     protected int round = 0, rounds = 1;
     protected long initTime;
+    protected boolean writtenAnything;
 
     protected static Pattern genStrip;
 
@@ -85,12 +86,14 @@ public abstract class BaseProcessor implements Processor{
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv){
         this.roundEnv = roundEnv;
-        if(round++ < rounds){
+        while(round++ < rounds){
             if(roundEnv.processingOver())
                 messager.printMessage(Kind.ERROR, String.format("Trying to call %s#process() after processing is over", getClass().getSimpleName()));
 
             try{
+                writtenAnything = false;
                 process();
+                if(writtenAnything) break;
             }catch(IOException e){
                 messager.printMessage(Kind.ERROR, Strings.getFinalMessage(e));
             }
@@ -105,6 +108,7 @@ public abstract class BaseProcessor implements Processor{
     protected abstract void process() throws IOException;
 
     protected void write(TypeSpec.Builder builder, Seq<String> imports) throws IOException{
+        writtenAnything = true;
         builder.superinterfaces.sort(Structs.comparing(TypeName::toString));
         builder.methodSpecs.sort(Structs.comparing(MethodSpec::toString));
         builder.fieldSpecs.sort(Structs.comparing(f -> f.name));

@@ -38,17 +38,17 @@ public class EntityProcessor extends BaseProcessor{
 
     protected Fi revDir, cacheDir;
 
-    protected OrderedMap<String, ClassSymbol> comps = new OrderedMap<>();
-    protected OrderedMap<String, ClassSymbol> inters = new OrderedMap<>();
+    protected ObjectMap<String, ClassSymbol> comps = new ObjectMap<>();
+    protected ObjectMap<String, ClassSymbol> inters = new ObjectMap<>();
     protected Seq<ClassSymbol> baseComps = new Seq<>();
-    protected OrderedMap<String, TypeSpec.Builder> baseClasses = new OrderedMap<>();
+    protected ObjectMap<String, TypeSpec.Builder> baseClasses = new ObjectMap<>();
     protected ObjectMap<String, ClassSymbol> baseClassTypes = new ObjectMap<>();
     protected ObjectMap<ClassSymbol, String> groups = new ObjectMap<>();
     protected ObjectMap<String, Seq<ClassSymbol>> groupExclusions = new ObjectMap<>();
     protected Seq<Symbol> defs = new Seq<>();
 
-    protected ObjectMap<ClassSymbol, OrderedMap<String, Seq<MethodSymbol>>> inserters = new OrderedMap<>();
-    protected ObjectMap<ClassSymbol, OrderedMap<String, Seq<MethodSymbol>>> wrappers = new OrderedMap<>();
+    protected ObjectMap<ClassSymbol, ObjectMap<String, Seq<MethodSymbol>>> inserters = new ObjectMap<>();
+    protected ObjectMap<ClassSymbol, ObjectMap<String, Seq<MethodSymbol>>> wrappers = new ObjectMap<>();
     protected Seq<ClassSymbol> pointers = new Seq<>();
 
     protected ObjectMap<ClassSymbol, EntitySource> sources = new ObjectMap<>();
@@ -61,13 +61,6 @@ public class EntityProcessor extends BaseProcessor{
 
     {
         rounds = 2;
-
-        comps.orderedKeys().ordered = false;
-        inters.orderedKeys().ordered = false;
-        baseClasses.orderedKeys().ordered = false;
-        baseComps.ordered = false;
-        defs.ordered = false;
-        pointers.ordered = false;
     }
 
     @Override
@@ -136,11 +129,7 @@ public class EntityProcessor extends BaseProcessor{
                     var type = comps.get(name(e.enclClass()));
                     if(type == null) continue;
 
-                    inserters.get(type, () -> {
-                        OrderedMap<String, Seq<MethodSymbol>> map = new OrderedMap<>();
-                        map.orderedKeys().ordered = false;
-                        return map;
-                    }).get(anno(e, Insert.class).value(), () -> new Seq<>(false)).add(e);
+                    inserters.get(type, ObjectMap::new).get(anno(e, Insert.class).value(), () -> new Seq<>(false)).add(e);
                 }
 
                 for(var e : this.<MethodSymbol>with(Wrap.class)){
@@ -151,11 +140,7 @@ public class EntityProcessor extends BaseProcessor{
                     var type = comps.get(name(e.enclClass()));
                     if(type == null) continue;
 
-                    wrappers.get(type, () -> {
-                        OrderedMap<String, Seq<MethodSymbol>> map = new OrderedMap<>();
-                        map.orderedKeys().ordered = false;
-                        return map;
-                    }).get(anno(e, Wrap.class).value(), () -> new Seq<>(false)).add(e);
+                    wrappers.get(type, ObjectMap::new).get(anno(e, Wrap.class).value(), () -> new Seq<>(false)).add(e);
                 }
 
                 serializer = TypeIOResolver.resolve(this);
@@ -419,11 +404,11 @@ public class EntityProcessor extends BaseProcessor{
                         var src = getSource(comp);
                         var tmp = inserters.get(comp);
                         if(tmp != null)
-                            for(var key : tmp.orderedKeys()) allInserters.get(key, Seq::new).addAll(tmp.get(key));
+                            for(var key : tmp.keys()) allInserters.get(key, Seq::new).addAll(tmp.get(key));
 
                         tmp = wrappers.get(comp);
                         if(tmp != null)
-                            for(var key : tmp.orderedKeys()) allWrappers.get(key, Seq::new).addAll(tmp.get(key));
+                            for(var key : tmp.keys()) allWrappers.get(key, Seq::new).addAll(tmp.get(key));
 
                         boolean isShadowed = baseClassType != null && !typeIsBase && baseDependencies.get(baseClassType).contains(comp);
                         for(var s : comp.getEnclosedElements()){
