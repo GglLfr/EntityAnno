@@ -42,7 +42,7 @@ public class EntityProcessor extends BaseProcessor{
     protected ObjectMap<String, ClassSymbol> inters = new ObjectMap<>();
     protected Seq<ClassSymbol> baseComps = new Seq<>();
     protected ObjectMap<String, TypeSpec.Builder> baseClasses = new ObjectMap<>();
-    protected ObjectMap<String, ClassSymbol> baseClassTypes = new ObjectMap<>();
+    protected ObjectMap<String, ClassSymbol> vanillaBaseClasses = new ObjectMap<>();
     protected ObjectMap<ClassSymbol, String> groups = new ObjectMap<>();
     protected ObjectMap<String, Seq<ClassSymbol>> groupExclusions = new ObjectMap<>();
     protected Seq<Symbol> defs = new Seq<>();
@@ -285,7 +285,7 @@ public class EntityProcessor extends BaseProcessor{
 
                         var name = baseName(comp);
                         var base = elements.getTypeElement("mindustry.gen." + name);
-                        if(base != null) baseClassTypes.put(name, base);
+                        if(base != null) vanillaBaseClasses.put(name, base);
                     }
                 }
             }
@@ -893,10 +893,15 @@ public class EntityProcessor extends BaseProcessor{
                             .build()
                     );
 
-                    ClassSymbol ext = null;
+                    ClassSymbol vanillaSuper = null;
                     if(def.extend != null){
-                        ext = baseClassTypes.get(baseName(def.extend));
-                        def.builder.superclass(spec(ext));
+                        var baseName = baseName(def.extend);
+                        if(vanillaBaseClasses.containsKey(baseName)){
+                            vanillaSuper = vanillaBaseClasses.get(baseName);
+                            def.builder.superclass(spec(vanillaSuper));
+                        }else{
+                            def.builder.superclass(ClassName.get(packageName, baseName));
+                        }
                     }
 
                     var methodNames = def.components.flatMap(t -> {
@@ -908,7 +913,9 @@ public class EntityProcessor extends BaseProcessor{
                     }).asSet();
 
                     TypeSpec.Builder superclass = null;
-                    if(ext != null) superclass = baseClasses.get(name(ext));
+                    if(def.extend != null){
+                        superclass = baseClasses.get(name(def.extend));
+                    }
 
                     for(var comp : def.components){
                         var src = getSource(comp);
@@ -957,16 +964,16 @@ public class EntityProcessor extends BaseProcessor{
                                             if(targetMethod == null) superclass.addMethod(result);
                                             continue;
                                         }
-                                    }else if(ext != null){
+                                    }else if(vanillaSuper != null){
                                         VarSymbol superField = null;
-                                        for(var sym : ext.getEnclosedElements()){
+                                        for(var sym : vanillaSuper.getEnclosedElements()){
                                             if(sym.getKind() == FIELD && name(sym).equals(var))
                                                 superField = (VarSymbol)sym;
                                         }
 
                                         if(superField != null){
                                             MethodSymbol targetMethod = null;
-                                            for(var sym : ext.getEnclosedElements()){
+                                            for(var sym : vanillaSuper.getEnclosedElements()){
                                                 if(sym.getKind() == METHOD && name(sym).equals(var)){
                                                     var msym = (MethodSymbol)sym;
                                                     if(spec(msym.getReturnType()).equals(result.returnType))
