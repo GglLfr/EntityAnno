@@ -329,6 +329,12 @@ public class EntityProcessor extends BaseProcessor{
                     }
 
                     if(defComps.isEmpty()) continue;
+                    var name = def instanceof ClassSymbol ? baseName(name(def)) : createName(defComps);
+
+                    defCompsResolve.clear();
+                    for(var comp : defComps.values())
+                        for(var dep : dependencies(comp)) defCompsResolve.put(name(dep), dep);
+                    defComps.putAll(defCompsResolve);
 
                     ClassSymbol baseClassType = null;
                     for(var comp : defComps.values()){
@@ -343,15 +349,9 @@ public class EntityProcessor extends BaseProcessor{
                     }
 
                     boolean typeIsBase = baseClassType != null && anno(def, EntityComponent.class) != null && anno(def, EntityComponent.class).base();
-                    var name = def instanceof ClassSymbol ? baseName(name(def)) : createName(defComps);
 
                     if(!typeIsBase && baseClassType != null && name.equals(baseName(baseClassType))) name += "Entity";
                     if(!registers.add(name)) continue;
-
-                    defCompsResolve.clear();
-                    for(var comp : defComps.values())
-                        for(var dep : dependencies(comp)) defCompsResolve.put(name(dep), dep);
-                    defComps.putAll(defCompsResolve);
 
                     valueComps.clear();
                     defGroups.clear();

@@ -85,7 +85,10 @@ public class EntitySource implements Serializable{
         }
 
         public String substitute(String blockName){
-            if(blockName == null) return block;
+            if(blockName == null) return block.replaceAll("this\\.<(.*)>self\\(\\)", "this")
+                .replaceAll("self\\(\\)(?!\\s+instanceof)", "this")
+                .replace(" yield ", "")
+                .replaceAll("/\\*missing\\*/", "var");
 
             var builder = new StringBuilder();
             int last = 0;
