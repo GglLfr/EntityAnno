@@ -146,22 +146,23 @@ public class EntityProcessor extends BaseProcessor{
                 serializer = TypeIOResolver.resolve(this);
                 groups.putAll(
                     comp(Entityc.class), "all",
+                    comp(EffectStatec.class), "effect",
                     comp(Playerc.class), "player",
                     comp(Bulletc.class), "bullet",
                     comp(Unitc.class), "unit",
                     comp(Buildingc.class), "build",
                     comp(Syncc.class), "sync",
                     comp(Drawc.class), "draw",
-                    comp(Firec.class), "fire",
-                    comp(Puddlec.class), "puddle",
-                    comp(WorldLabelc.class), "label",
+                    comp(WeatherStatec.class), "weather",
                     comp(PowerGraphUpdaterc.class), "powerGraph"
                 );
 
                 groupExclusions.put("all", Seq.with(
                     comp(Unitc.class),
                     comp(Bulletc.class),
-                    comp(PowerGraphUpdaterc.class)
+                    comp(PowerGraphUpdaterc.class),
+                    comp(EffectStatec.class),
+                    comp(Playerc.class)
                 ));
 
                 for(var s : elements.getPackageElement("mindustry.gen").getEnclosedElements()){
