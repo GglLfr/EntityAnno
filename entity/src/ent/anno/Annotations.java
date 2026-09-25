@@ -19,7 +19,7 @@ public final class Annotations{
     public @interface TypeIOHandler{
     }
 
-    /** Indicates that this class is an entities component. */
+    /** Indicates that this class is an entity component. */
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.CLASS)
     public @interface EntityComponent{
@@ -30,22 +30,23 @@ public final class Annotations{
         boolean base() default false;
     }
 
-    /** All entities components will inherit from this. */
+    /** All entity components will inherit from this. */
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.CLASS)
     public @interface EntityBaseComponent{
     }
 
-    /** Whether this interface wraps an entities component. */
+    /** Whether this interface wraps an entity component. */
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.CLASS)
     public @interface EntityInterface{
     }
 
-    /** Generates an entities definition from given components. */
+    /** Generates an entity definition from given components. */
+    @Target({ElementType.TYPE, ElementType.FIELD})
     @Retention(RetentionPolicy.CLASS)
     public @interface EntityDef{
-        /** @return The interfaces that will be inherited by the generated entities class. */
+        /** @return The interfaces that will be inherited by the generated entity class. */
         Class<?>[] value();
 
         /** @return Whether the class can serialize itself. */
@@ -58,10 +59,19 @@ public final class Annotations{
         boolean pooled() default false;
     }
 
-    /** Indicates that this entities (!) class should be mapped. */
-    @Target({ElementType.TYPE})
+    /**
+     * Based on usage:
+     * <ul>
+     *   <li> When used to annotate an entity class, indicates the class should be mapped in {@code EntityRegistry}.
+     *   <li> When used to annotate a {@code public static UnitType} fields, indicates that the unit types' constructor
+     *        should use that class. Note that {@link #value()} must be written in this case.
+     * </ul>
+     */
+    @Target({ElementType.TYPE, ElementType.FIELD})
     @Retention(RetentionPolicy.CLASS)
     public @interface EntityPoint{
+        /** @return The unit constructor class when annotating a field. Leave untouched otherwise. */
+        Class<?> value() default Void.class;
     }
 
     /** Indicates that a field will be interpolated when synced. */
@@ -147,7 +157,7 @@ public final class Annotations{
         Class<?> value();
     }
 
-    /** Will only implement this method if the entities inherits these certain components. */
+    /** Will only implement this method if the entity inherits these certain components. */
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.CLASS)
     public @interface Extend{
@@ -191,7 +201,7 @@ public final class Annotations{
         Class<?> block() default Void.class;
     }
 
-    /** Prevents this component from getting added into an entities group, specified by the group's element type. */
+    /** Prevents this component from getting added into an entity group, specified by the group's element type. */
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.CLASS)
     public @interface ExcludeGroups{

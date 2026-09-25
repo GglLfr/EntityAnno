@@ -50,7 +50,8 @@ public class EntityProcessor extends BaseProcessor{
 
     protected ObjectMap<ClassSymbol, ObjectMap<String, Seq<MethodSymbol>>> inserters = new ObjectMap<>();
     protected ObjectMap<ClassSymbol, ObjectMap<String, Seq<MethodSymbol>>> wrappers = new ObjectMap<>();
-    protected Seq<ClassSymbol> pointers = new Seq<>();
+    protected Seq<ClassSymbol> classPointers = new Seq<>();
+    protected Seq<VarSymbol> varPointers = new Seq<>();
 
     protected ObjectMap<ClassSymbol, Source> sources = new ObjectMap<>();
     protected ObjectMap<ClassSymbol, Seq<ClassSymbol>> dependencies = new ObjectMap<>();
@@ -110,18 +111,30 @@ public class EntityProcessor extends BaseProcessor{
                 for(var s : with(EntityDef.class)) defs.add(s);
 
                 pointer:
-                for(var t : this.<ClassSymbol>with(EntityPoint.class)){
-                    for(var s : t.getEnclosedElements()){
-                        if(s.getKind() == METHOD){
-                            var m = (MethodSymbol)s;
-                            if(is(m, PUBLIC, STATIC) && m.params.isEmpty() && same(m.getReturnType(), t)){
-                                pointers.add(t);
-                                continue pointer;
+                for(var p : with(EntityPoint.class)){
+                    var type = type(anno(p, EntityPoint.class)::value);
+                    if(p instanceof ClassSymbol t){
+                        if(!same(type, conv(Void.class)))
+                            err("@EntityPoint when used on classes must not define a value class", t);
+
+                        for(var s : t.getEnclosedElements()){
+                            if(s.getKind() == METHOD){
+                                var m = (MethodSymbol)s;
+                                if(is(m, PUBLIC, STATIC) && m.params.isEmpty() && same(m.getReturnType(), t)){
+                                    classPointers.add(t);
+                                    continue pointer;
+                                }
                             }
                         }
-                    }
 
-                    err("Missing `public static " + name(t) + " create()`", t);
+                        err("Missing `public static " + name(t) + " create()`", t);
+                    }else if(p instanceof VarSymbol v){
+                        if(!is(v, PUBLIC, STATIC) || !is(v.enclClass(), PUBLIC) || !types.isSubtype(v.type, conv(UnitType.class).type)){
+                            err("@EntityPoint for fields only accept `public static UnitType`", v);
+                        }else{
+                            varPointers.add(v);
+                        }
+                    }
                 }
 
                 for(var e : this.<MethodSymbol>with(Insert.class)){
@@ -297,8 +310,7 @@ public class EntityProcessor extends BaseProcessor{
             case 2 -> {
                 for(var t : this.<ClassSymbol>with(EntityInterface.class)) inters.put(name(t), t);
 
-                OrderedSet<String> registers = new OrderedSet<>();
-                registers.orderedItems().ordered = false;
+                OrderedMap<String, Seq<VarSymbol>> genRegisters = new OrderedMap<>();
 
                 OrderedMap<String, ClassSymbol> defComps = new OrderedMap<>();
                 ObjectMap<String, ClassSymbol> defCompsResolve = new ObjectMap<>();
@@ -353,9 +365,27 @@ public class EntityProcessor extends BaseProcessor{
                     }
 
                     boolean typeIsBase = baseClassType != null && anno(def, EntityComponent.class) != null && anno(def, EntityComponent.class).base();
-
                     if(!typeIsBase && baseClassType != null && name.equals(baseName(baseClassType))) name += "Entity";
-                    if(!registers.add(name)) continue;
+
+                    var contentField = def instanceof VarSymbol v && is(v, PUBLIC, STATIC) && is(v.enclClass(), PUBLIC) && types.isSubtype(v.type, conv(UnitType.class).type) ? v : null;
+                    if(def instanceof VarSymbol && contentField == null) err(
+                        "@EntityDef when used on fields only accept `public static UnitType`. " +
+                            "Don't forget to call `EntityRegistry.registerUnits()` *once*, *after* all unit types have been constructed.",
+                        def
+                    );
+
+                    // Allow generation to still proceed, even though the field usage is erroneous.
+                    if(contentField != null && !defComps.containsKey("UnitComp")){
+                        err("@EntityDef when used on `UnitType` fields must resolve to an entity class that contains a `Unitc` component.", contentField);
+                        contentField = null;
+                    }
+
+                    if(!genRegisters.containsKey(name)){
+                        genRegisters.put(name, contentField == null ? new Seq<>() : Seq.with(contentField));
+                    }else{
+                        if(contentField != null) genRegisters.get(name).add(contentField);
+                        continue;
+                    }
 
                     valueComps.clear();
                     defGroups.clear();
@@ -872,12 +902,49 @@ public class EntityProcessor extends BaseProcessor{
                             .build()
                     );
 
+                var registerUnits = MethodSpec.methodBuilder("registerUnits")
+                    .addModifiers(PUBLIC, STATIC)
+                    .returns(TypeName.VOID);
+
+                genRegisters.orderedKeys().sort();
+                varPointers.sort(Structs.comparing(BaseProcessor::name));
+
+                for(var v : varPointers){
+                    var type = type(anno(v, EntityPoint.class)::value);
+                    if(!types.isSubtype(type.type, conv(Unit.class).type)){
+                        err("@EntityPoint when used on fields must define an entity class that extends `Unit`", v);
+                        continue;
+                    }
+
+                    if(type.type.isErroneous()){
+                        if(type.getEnclosingElement().asType().isErroneous() && genRegisters.containsKey(name(type))){
+                            registerUnits.addStatement("register($T.$L, $T.class)", spec(v.enclClass()), v.name, ClassName.get(packageName, name(type)));
+                        }else{
+                            err("Invalid class provided to @EntityPoint", type);
+                        }
+                    }else{
+                        registerUnits.addStatement("register($T.$L, $T.class)", spec(v.enclClass()), v.name, spec(type));
+                    }
+                }
+
+                for(var e : genRegisters.orderedKeys()){
+                    var type = ClassName.get(packageName, e);
+                    var vars = genRegisters.get(e);
+
+                    vars.sort(Structs.comparing(BaseProcessor::name));
+                    for(var v : vars){
+                        registerUnits.addStatement("register($T.$L, $T.class)", spec(v.enclClass()), v.name, type);
+                    }
+                }
+
+                registry.addMethod(registerUnits.build());
+
                 var register = MethodSpec.methodBuilder("register")
                     .addModifiers(PUBLIC, STATIC)
                     .returns(TypeName.VOID);
 
-                pointers.sort(Structs.comparing(BaseProcessor::fName));
-                for(var point : pointers){
+                classPointers.sort(Structs.comparing(BaseProcessor::fName));
+                for(var point : classPointers){
                     registry.addOriginatingElement(point);
 
                     var name = ClassName.get(point);
