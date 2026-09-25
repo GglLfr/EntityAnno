@@ -12,8 +12,9 @@ import com.sun.tools.javac.code.Symbol.*;
 import ent.anno.Annotations.*;
 import ent.anno.*;
 import ent.anno.TypeIOResolver.*;
-import ent.anno.proc.EntitySource.*;
+import ent.anno.proc.Source.*;
 import mindustry.gen.*;
+import mindustry.type.*;
 
 import javax.annotation.processing.*;
 import javax.lang.model.element.*;
@@ -51,7 +52,7 @@ public class EntityProcessor extends BaseProcessor{
     protected ObjectMap<ClassSymbol, ObjectMap<String, Seq<MethodSymbol>>> wrappers = new ObjectMap<>();
     protected Seq<ClassSymbol> pointers = new Seq<>();
 
-    protected ObjectMap<ClassSymbol, EntitySource> sources = new ObjectMap<>();
+    protected ObjectMap<ClassSymbol, Source> sources = new ObjectMap<>();
     protected ObjectMap<ClassSymbol, Seq<ClassSymbol>> dependencies = new ObjectMap<>();
     protected ObjectMap<ClassSymbol, ObjectSet<ClassSymbol>> baseDependencies = new ObjectMap<>();
 
@@ -77,20 +78,20 @@ public class EntityProcessor extends BaseProcessor{
         cacheDir.mkdirs();
     }
 
-    protected EntitySource getSource(ClassSymbol comp) throws IOException{
+    protected Source getSource(ClassSymbol comp) throws IOException{
         if(sources.containsKey(comp)) return sources.get(comp);
 
         var file = cacheDir.child(String.format("%s.bin", name(comp)));
-        EntitySource src;
+        Source src;
 
         try{
-            src = new EntitySource(this, comp);
+            src = new Source(this, comp);
             try(var out = file.write(); var object = new ObjectOutputStream(out)){
                 object.writeObject(src);
             }
         }catch(ReprocessedNotRecompiledException read){
             try(var in = file.read(); var object = new ObjectInputStream(in)){
-                src = (EntitySource)object.readObject();
+                src = (Source)object.readObject();
             }catch(ClassNotFoundException | ClassCastException e){
                 throw new IOException(e);
             }
@@ -780,11 +781,13 @@ public class EntityProcessor extends BaseProcessor{
                 var registry = TypeSpec.classBuilder("EntityRegistry")
                     .addModifiers(PUBLIC, FINAL)
                     .addAnnotation(
+                        // `@SuppressWarnings("unchecked")`
                         AnnotationSpec.builder(spec(SuppressWarnings.class))
                             .addMember("value", "$S", "unchecked")
                             .build()
                     )
                     .addField(
+                        // `private static final ObjectMap<String, Prov<? extends Entityc>> map = new ObjectMap<>()`
                         FieldSpec.builder(
                                 paramSpec(spec(ObjectMap.class), spec(String.class), paramSpec(spec(Prov.class), subSpec(spec(Entityc.class)))),
                                 "map",
@@ -794,6 +797,7 @@ public class EntityProcessor extends BaseProcessor{
                             .build()
                     )
                     .addField(
+                        // `private static final ObjectIntMap<Class<? extends Entityc>> ids = new ObjectIntMap<>()`
                         FieldSpec.builder(
                                 paramSpec(spec(ObjectIntMap.class), paramSpec(spec(Class.class), subSpec(spec(Entityc.class)))),
                                 "ids",
@@ -803,12 +807,14 @@ public class EntityProcessor extends BaseProcessor{
                             build()
                     )
                     .addMethod(
+                        // Hide and delete constructor.
                         MethodSpec.constructorBuilder()
                             .addModifiers(PRIVATE)
                             .addStatement("throw new $T()", spec(AssertionError.class))
                             .build()
                     )
                     .addMethod(
+                        // `public static <T extends Entityc> Prov<T> get(Class<T> type);`
                         MethodSpec.methodBuilder("get")
                             .addModifiers(PUBLIC, STATIC)
                             .addTypeVariable(tvSpec("T", spec(Entityc.class)))
@@ -818,6 +824,7 @@ public class EntityProcessor extends BaseProcessor{
                             .build()
                     )
                     .addMethod(
+                        // `public static <T extends Entityc> Prov<T> get(String name);`
                         MethodSpec.methodBuilder("get")
                             .addModifiers(PUBLIC, STATIC)
                             .addTypeVariable(tvSpec("T", spec(Entityc.class)))
@@ -827,6 +834,7 @@ public class EntityProcessor extends BaseProcessor{
                             .build()
                     )
                     .addMethod(
+                        // `public static int getID(Class<? extends Entity> type);`
                         MethodSpec.methodBuilder("getID")
                             .addModifiers(PUBLIC, STATIC)
                             .returns(TypeName.INT)
@@ -835,6 +843,7 @@ public class EntityProcessor extends BaseProcessor{
                             .build()
                     )
                     .addMethod(
+                        // `public static <T extends Entityc> void register(String name, Class<T> type, Prov<T> prov);`
                         MethodSpec.methodBuilder("register")
                             .addModifiers(PUBLIC, STATIC)
                             .addTypeVariable(tvSpec("T", spec(Entityc.class)))
@@ -847,21 +856,19 @@ public class EntityProcessor extends BaseProcessor{
                             .build()
                     )
                     .addMethod(
-                        MethodSpec.methodBuilder("content")
+                        // `public static <T extends Unit> void unit(UnitType type, Class<T> type);`
+                        MethodSpec.methodBuilder("register")
                             .addModifiers(PUBLIC, STATIC)
-                            .addTypeVariable(tvSpec("T"))
-                            .addTypeVariable(tvSpec("E", spec(Entityc.class)))
-                            .returns(tvSpec("T"))
-                            .addParameter(spec(String.class), "name")
-                            .addParameter(paramSpec(spec(Class.class), tvSpec("E")), "type")
-                            .addParameter(paramSpec(spec(Func.class), spec(String.class), subSpec(tvSpec("T"))), "create")
+                            .addTypeVariable(tvSpec("T", spec(Unit.class)))
+                            .returns(TypeName.VOID)
+                            .addParameter(spec(UnitType.class), "unit")
+                            .addParameter(paramSpec(spec(Class.class), tvSpec("T")), "type")
                             .beginControlFlow("if(type.getName().startsWith($S))", "mindustry.gen.")
                             .addStatement("var prov = $T.find($T.idMap, p -> p != null && p.get().getClass().equals(type))", spec(Structs.class), spec(EntityMapping.class))
-                            .addStatement("$T.nameMap.put($S + name, prov)", spec(EntityMapping.class), modName + "-")
+                            .addStatement("$T.nameMap.put(unit.name, unit.constructor = prov)", spec(EntityMapping.class))
                             .nextControlFlow("else")
-                            .addStatement("$T.nameMap.put($S + name, get(type))", spec(EntityMapping.class), modName + "-")
+                            .addStatement("$T.nameMap.put(unit.name, unit.constructor = get(type))", spec(EntityMapping.class))
                             .endControlFlow()
-                            .addStatement("return create.get(name)")
                             .build()
                     );
 

@@ -12,12 +12,12 @@ import static ent.anno.BaseProcessor.*;
 import static javax.lang.model.element.ElementKind.*;
 import static javax.lang.model.element.Modifier.*;
 
-public class EntitySource implements Serializable{
+public class Source implements Serializable{
     public final List<String> imports = new ArrayList<>();
     public final Map<String, String> varInitializers = new HashMap<>();
     public final Map<String, MethodBlock> methodBlocks = new HashMap<>();
 
-    public EntitySource(BaseProcessor proc, ClassSymbol comp) throws ReprocessedNotRecompiledException{
+    public Source(BaseProcessor proc, ClassSymbol comp) throws ReprocessedNotRecompiledException{
         var path = proc.trees.getPath(comp);
         if(path == null) throw new ReprocessedNotRecompiledException();
 
