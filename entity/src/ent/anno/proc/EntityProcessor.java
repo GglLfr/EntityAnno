@@ -144,6 +144,9 @@ public class EntityProcessor extends BaseProcessor{
                 }
 
                 serializer = TypeIOResolver.resolve(this);
+                // NOTE:
+                // - `Groups.weather` is excluded because the comp class is not top-level.
+                //   I'm not really keen on fixing this--why would anybody define a custom weather state anyway?
                 groups.putAll(
                     comp(Entityc.class), "all",
                     comp(EffectStatec.class), "effect",
@@ -153,7 +156,6 @@ public class EntityProcessor extends BaseProcessor{
                     comp(Buildingc.class), "build",
                     comp(Syncc.class), "sync",
                     comp(Drawc.class), "draw",
-                    comp(WeatherStatec.class), "weather",
                     comp(PowerGraphUpdaterc.class), "powerGraph"
                 );
 
