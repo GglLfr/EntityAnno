@@ -30,7 +30,6 @@ import java.util.regex.*;
 public abstract class BaseProcessor implements Processor{
     private static final ObjectMap<Element, ObjectMap<Class<? extends Annotation>, Annotation>> annotations = new ObjectMap<>();
 
-    public String modName;
     public String packageName;
     public String packageFetch;
 
@@ -51,9 +50,6 @@ public abstract class BaseProcessor implements Processor{
 
     @Override
     public synchronized void init(ProcessingEnvironment env){
-        modName = env.getOptions().get("modName");
-        if(modName == null) throw new IllegalStateException("`modName` not supplied!");
-
         packageName = env.getOptions().get("genPackage");
         if(packageName == null) throw new IllegalStateException("`genPackage` not supplied!");
         genStrip = Pattern.compile(packageName.replace(".", "\\.") + "\\.[^A-Z]*");
@@ -358,7 +354,6 @@ public abstract class BaseProcessor implements Processor{
     @Override
     public Set<String> getSupportedOptions(){
         return Set.of(
-            "modName",
             "genPackage",
             "fetchPackage"
         );

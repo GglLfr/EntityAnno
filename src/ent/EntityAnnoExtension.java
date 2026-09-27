@@ -9,8 +9,6 @@ import java.io.*;
  * @author GlFolker
  */
 public interface EntityAnnoExtension{
-    /** @return The mod's internal name. */
-    Property<String> getModName();
     /** @return Mindustry entity classes version override. */
     Property<String> getMindustryVersion();
 

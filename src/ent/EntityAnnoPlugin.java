@@ -151,7 +151,6 @@ public class EntityAnnoPlugin implements Plugin<Project>{
 
                 var args = task.getOptions().getCompilerArgs();
                 args.add("-implicit:none");
-                args.add(String.format("-AmodName=%s", ext.getModName().get()));
                 args.add(String.format("-AgenPackage=%s", ext.getGenPackage().get()));
                 args.add(String.format("-AfetchPackage=%s", ext.getFetchPackage().get()));
                 args.add(String.format("-AcacheDir=%s", srcCacheDir.get().getAsFile().getAbsolutePath()));
