@@ -1,7 +1,7 @@
 package ent;
 
 import arc.files.*;
-import arc.struct.*;
+import arc.struct.Queue;
 import arc.util.*;
 import arc.util.serialization.*;
 import org.gradle.api.*;
@@ -11,10 +11,12 @@ import org.gradle.api.tasks.bundling.*;
 import org.gradle.api.tasks.compile.*;
 
 import java.io.*;
+import java.util.*;
 import java.util.concurrent.*;
 
 /**
  * Gradle plugin for creating necessary entity component generation classes.
+ *
  * @author GlFolker
  */
 public class EntityAnnoPlugin implements Plugin<Project>{
@@ -32,7 +34,18 @@ public class EntityAnnoPlugin implements Plugin<Project>{
         var srcCacheDir = project.getLayout().getBuildDirectory().dir("src-cache");
 
         var fetchComps = tasks.register("fetchComps", t -> {
-            t.getInputs().property("version", ext.getMindustryVersion());
+            try(var stream = project.getBuildscript().getClassLoader().getResourceAsStream("version.properties")){
+                var properties = new Properties();
+                properties.load(stream);
+
+                var build = properties.getProperty("build");
+                if(build == null) throw new IOException("No such property `build`");
+                t.getInputs().property("version", build);
+            }catch(IOException e){
+                t.getInputs().property("version", ext.getMindustryVersion());
+                t.getLogger().warn("Couldn't read Mindustry classpath version", e);
+            }
+
             t.getOutputs().dir(fetchDir);
 
             t.doFirst(tt -> {
