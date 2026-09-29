@@ -1,13 +1,19 @@
 # `EntityAnno`
-Utility tools for generating [`Mindustry`](https://github.com/Anuken/Mindustry) custom entity component classes. Offered features:
-- Nearly one-to-one integration of the entity component class generator in Mindustry, with an additional utility to properly register the entity class IDs for usage in UnitType`s and persistence across save files.
+
+Utility tools for generating [`Mindustry`](https://github.com/Anuken/Mindustry) custom entity component classes. Offered
+features:
+
+- Nearly one-to-one integration of the entity component class generator in Mindustry, with an additional utility to
+  properly register the entity class IDs for usage in UnitType`s and persistence across save files.
 - Supports both release and bleeding-edge Mindustry version hashes.
 - A [dedicated template](https://github.com/GlennFolker/MindustryModTemplate).
 
 ## Contributing
+
 This project is licensed under [GNU GPL v3](/LICENSE).
 
 ## Version Compatibility
+
 | `Mindustry`/`Arc` | `EntityAnno`                 |
 |-------------------|------------------------------|
 | `v160.*`          | `v2.2.0+v160`, `v1.2.1+v160` |

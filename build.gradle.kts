@@ -1,5 +1,6 @@
-import org.gradle.api.publish.maven.internal.publication.*
-import java.io.*
+import org.gradle.api.publish.maven.internal.publication.MavenPublicationInternal
+import java.io.BufferedWriter
+import java.io.FileWriter
 
 plugins{
     `java-gradle-plugin`
@@ -8,14 +9,6 @@ plugins{
 
 val mindustryVersion = providers.gradleProperty("mindustryVersion").get()
 val javapoetVersion = providers.gradleProperty("javapoetVersion").get()
-
-fun mindustry(): String{
-    return "Anuken:Mindustry:$mindustryVersion"
-}
-
-fun javapoet(): String{
-    return "com.squareup:javapoet:$javapoetVersion"
-}
 
 fun commonPom(pom: MavenPom){
     pom.apply{
@@ -52,11 +45,7 @@ allprojects{
         ivy{
             url = uri("https://github.com")
             patternLayout{
-                artifact(when(mindustryVersion){
-                    "latest" -> "Anuken/Mindustry/releases/latest/download/dependencies.jar"
-                    "be" -> "Anuken/MindustryBuilds/releases/download/master/latest.jar"
-                    else -> "Anuken/Mindustry/releases/download/[revision]/dependencies.jar"
-                })
+                artifact("Anuken/Mindustry/releases/download/[revision]/dependencies.jar")
                 metadataSources{artifact()}
             }
             content{
@@ -122,8 +111,8 @@ project(":entity"){
 
     sourceSets["main"].resources.setSrcDirs(listOf(layout.projectDirectory.dir("assets")))
     dependencies{
-        implementation(mindustry())
-        implementation(javapoet())
+        implementation("Anuken:Mindustry:$mindustryVersion")
+        implementation("com.squareup:javapoet:$javapoetVersion")
     }
 }
 
@@ -191,6 +180,6 @@ project(":"){
     }
 
     dependencies{
-        implementation(mindustry())
+        implementation("Anuken:Mindustry:$mindustryVersion")
     }
 }
