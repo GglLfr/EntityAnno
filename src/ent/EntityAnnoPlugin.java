@@ -33,19 +33,26 @@ public class EntityAnnoPlugin implements Plugin<Project>{
         var fetchDir = project.getLayout().getBuildDirectory().dir("fetched");
         var srcCacheDir = project.getLayout().getBuildDirectory().dir("src-cache");
 
+        String mindustryVersion, mindustryType;
+        try(var stream = EntityAnnoPlugin.class.getClassLoader().getResourceAsStream("version.properties")){
+            if(stream == null)
+                throw new IOException("Missing resource; fix your dependency specs in `build.gradle[.kts]`");
+
+            var props = new Properties();
+            props.load(stream);
+
+            mindustryVersion = props.getProperty("build");
+            mindustryType = props.getProperty("type");
+
+            if(mindustryVersion == null || mindustryType == null)
+                throw new IOException("Missing `build` or `type` properties");
+        }catch(IOException e){
+            throw new GradleException("Couldn't read `version.properties`", e);
+        }
+
         var fetchComps = tasks.register("fetchComps", t -> {
-            try(var stream = project.getBuildscript().getClassLoader().getResourceAsStream("version.properties")){
-                var properties = new Properties();
-                properties.load(stream);
-
-                var build = properties.getProperty("build");
-                if(build == null) throw new IOException("No such property `build`");
-                t.getInputs().property("version", build);
-            }catch(IOException e){
-                t.getInputs().property("version", ext.getMindustryVersion());
-                t.getLogger().warn("Couldn't read Mindustry classpath version", e);
-            }
-
+            t.getInputs().property("version", mindustryVersion);
+            t.getInputs().property("build", mindustryType);
             t.getOutputs().dir(fetchDir);
 
             t.doFirst(tt -> {
@@ -54,11 +61,10 @@ public class EntityAnnoPlugin implements Plugin<Project>{
                 dirFi.emptyDirectory();
                 dirFi.mkdirs();
 
-                var versionSelect = ext.getMindustryVersion().get();
-                String version = switch(versionSelect){
-                    case "latest" -> {
+                String version = switch(mindustryType){
+                    case "official" -> {
                         String[] tag = {null};
-                        Http.get("https://api.github.com/repos/Anuken/Mindustry/releases/latest")
+                        Http.get(String.format("https://api.github.com/repos/Anuken/Mindustry/releases/tags/v%s", mindustryVersion))
                             .timeout(0)
                             .error(e -> {
                                 throw new RuntimeException(e);
@@ -66,7 +72,7 @@ public class EntityAnnoPlugin implements Plugin<Project>{
                             .block(res -> tag[0] = Jval.read(res.getResultAsString()).get("tag_name").asString());
                         yield tag[0];
                     }
-                    case "be" -> {
+                    case "bleeding-edge" -> {
                         String[] tag = {null};
                         Http.get("https://api.github.com/repos/Anuken/Mindustry/commits?per_page=1")
                             .timeout(0)
@@ -76,7 +82,8 @@ public class EntityAnnoPlugin implements Plugin<Project>{
                             .block(res -> tag[0] = Jval.read(res.getResultAsString()).asArray().get(0).get("sha").asString());
                         yield tag[0];
                     }
-                    default -> versionSelect;
+                    default ->
+                        throw new GradleException(String.format("Invalid Mindustry version type `%s`", mindustryType));
                 };
 
                 Queue<Future<?>> fetches = new Queue<>();
@@ -167,7 +174,7 @@ public class EntityAnnoPlugin implements Plugin<Project>{
                 args.add(String.format("-AgenPackage=%s", ext.getGenPackage().get()));
                 args.add(String.format("-AfetchPackage=%s", ext.getFetchPackage().get()));
                 args.add(String.format("-AcacheDir=%s", srcCacheDir.get().getAsFile().getAbsolutePath()));
-                args.add(String.format("-ArevisionDir=%s", ext.getRevisionDir().get().getAbsolutePath()));
+                args.add(String.format("-ArevisionDir=%s", ext.getRevisionDir().get().getAsFile().getAbsolutePath()));
             });
 
             // Exclude fetched and generation source classes.
