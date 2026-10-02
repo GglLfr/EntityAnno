@@ -1,4 +1,3 @@
-import org.gradle.api.publish.maven.internal.publication.MavenPublicationInternal
 import java.io.BufferedWriter
 import java.io.FileWriter
 
@@ -151,8 +150,7 @@ project(":"){
         val mavenArtifactId = maven.map{it.artifactId}
         val mavenVersion = maven.map{it.version}
 
-        register<MavenPublication>("plugin") {
-            (this as MavenPublicationInternal).isAlias = true
+        register<MavenPublication>("plugin"){
             groupId = plugin.map{it.id}.get()
             artifactId = "$groupId.gradle.plugin"
 
