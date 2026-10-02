@@ -5,12 +5,11 @@ import org.gradle.api.provider.*;
 
 /**
  * Necessary extension data for {@link EntityAnnoPlugin}.
- *
  * @author GlFolker
  */
 public interface EntityAnnoExtension{
     /** @return The location to store entity revision data. */
-    RegularFileProperty getRevisionDir();
+    DirectoryProperty getRevisionDir();
 
     /** @return Package name for fetched vanilla component classes, typically {@code modname.fetched}. */
     Property<String> getFetchPackage();
