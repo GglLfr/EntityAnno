@@ -918,12 +918,12 @@ public class EntityProcessor extends BaseProcessor{
 
                     if(type.type.isErroneous()){
                         if(type.getEnclosingElement().asType().isErroneous() && genRegisters.containsKey(name(type))){
-                            registerUnits.addStatement("register($T.$L, $T.class)", spec(v.enclClass()), v.name, ClassName.get(packageName, name(type)));
+                            registerUnits.addStatement("if($T.$L != null) register($T.$L, $T.class)", spec(v.enclClass()), v.name, spec(v.enclClass()), v.name, ClassName.get(packageName, name(type)));
                         }else{
                             err("Invalid class provided to @EntityPoint", type);
                         }
                     }else{
-                        registerUnits.addStatement("register($T.$L, $T.class)", spec(v.enclClass()), v.name, spec(type));
+                        registerUnits.addStatement("if($T.$L != null) register($T.$L, $T.class)", spec(v.enclClass()), v.name, spec(v.enclClass()), v.name, spec(type));
                     }
                 }
 
@@ -933,7 +933,7 @@ public class EntityProcessor extends BaseProcessor{
 
                     vars.sort(Structs.comparing(BaseProcessor::name));
                     for(var v : vars){
-                        registerUnits.addStatement("register($T.$L, $T.class)", spec(v.enclClass()), v.name, type);
+                        registerUnits.addStatement("if($T.$L != null) register($T.$L, $T.class)", spec(v.enclClass()), v.name, spec(v.enclClass()), v.name, type);
                     }
                 }
 
