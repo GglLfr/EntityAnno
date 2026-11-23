@@ -19,7 +19,6 @@ public class EntityAnnoPlugin implements Plugin<Project>{
     public void apply(Project project){
         var exts = project.getExtensions();
         var layout = project.getLayout();
-        var objects = project.getObjects();
         var plugins = project.getPlugins();
         var tasks = project.getTasks();
 
@@ -70,17 +69,17 @@ public class EntityAnnoPlugin implements Plugin<Project>{
             );
 
         // Configure annotation processor inputs.
-        tasks.withType(JavaCompile.class).configureEach(t -> {
-            var cmd = objects.newInstance(EntityAnnoArguments.class);
+        tasks.withType(JavaCompile.class).configureEach(t -> t.getOptions().getCompilerArgumentProviders().add(() -> {
+            List<String> cmd = new ArrayList<>();
             var srcCacheDir = layout.getBuildDirectory().dir("src-cache");
 
-            cmd.getArguments().add(genPackage.map(p -> "-AgenPackage=" + p));
-            cmd.getArguments().add(fetchPackage.map(p -> "-AfetchPackage=" + p));
-            cmd.getArguments().add(srcCacheDir.map(p -> "-AcacheDir=" + p.getAsFile().getAbsolutePath()));
-            cmd.getArguments().add(revisionDir.map(p -> "-ArevisionDir=" + p.getAsFile().getAbsolutePath()));
+            cmd.add(genPackage.map(p -> "-AgenPackage=" + p).get());
+            cmd.add(fetchPackage.map(p -> "-AfetchPackage=" + p).get());
+            cmd.add(srcCacheDir.map(p -> "-AcacheDir=" + p.getAsFile().getAbsolutePath()).get());
+            cmd.add(revisionDir.map(p -> "-ArevisionDir=" + p.getAsFile().getAbsolutePath()).get());
 
-            t.getOptions().getCompilerArgumentProviders().add(cmd);
-        });
+            return cmd;
+        }));
 
         // Exclude fetched and generation source classes.
         tasks.withType(Jar.class).configureEach(t -> {
